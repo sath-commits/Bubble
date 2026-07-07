@@ -1,8 +1,6 @@
 import { ImageResponse } from "next/og";
 import { getDashboardData } from "@/lib/data";
 
-export const runtime = "edge";
-
 export async function GET() {
   const { composite } = await getDashboardData();
   const drivers = composite.topDrivers.map((driver) => driver.metric.name).join(" • ");
