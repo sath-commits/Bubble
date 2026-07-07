@@ -71,23 +71,48 @@ function mapMetric(row: MetricRow, values: HistoryPoint[]): MetricDefinition {
   };
 }
 
+async function fetchAllMetricValues(
+  supabase: NonNullable<ReturnType<typeof createPublicSupabaseClient>>,
+): Promise<{ rows: MetricValueRow[]; error: unknown }> {
+  const pageSize = 1000;
+  const rows: MetricValueRow[] = [];
+  for (let offset = 0; ; offset += pageSize) {
+    const { data, error } = await supabase
+      .from("metric_values")
+      .select("metric_id,date,value")
+      .order("date")
+      .range(offset, offset + pageSize - 1);
+    if (error) {
+      return { rows, error };
+    }
+    rows.push(...((data ?? []) as MetricValueRow[]));
+    if (!data || data.length < pageSize) {
+      break;
+    }
+  }
+  return { rows, error: null };
+}
+
 export async function getDashboardData(): Promise<DashboardData> {
   const supabase = createPublicSupabaseClient();
   if (!supabase) {
     return fallbackDashboardData();
   }
 
-  const [{ data: metricRows, error: metricError }, { data: valueRows, error: valueError }] = await Promise.all([
+  const [{ data: metricRows, error: metricError }, { rows: valueRows, error: valueError }] = await Promise.all([
     supabase.from("metrics").select("*").eq("active", true).order("category").order("name"),
-    supabase.from("metric_values").select("metric_id,date,value").order("date"),
+    fetchAllMetricValues(supabase),
   ]);
 
   if (metricError || valueError || !metricRows?.length) {
+    if (metricError || valueError) {
+      console.error("getDashboardData: falling back to static catalog", { metricError, valueError });
+    }
     return fallbackDashboardData();
   }
 
   const valuesByMetric = new Map<string, HistoryPoint[]>();
-  for (const row of (valueRows ?? []) as MetricValueRow[]) {
+  for (const row of valueRows) {
     const values = valuesByMetric.get(row.metric_id) ?? [];
     values.push({ date: row.date, value: Number(row.value) });
     valuesByMetric.set(row.metric_id, values);
@@ -98,6 +123,12 @@ export async function getDashboardData(): Promise<DashboardData> {
     .filter((metric) => metric.history.length > 0);
 
   const catalog = resolveMetricCatalog(liveMetrics, getMetrics());
+  if (!catalog.fromSupabase) {
+    console.warn("getDashboardData: live metrics below threshold, using static catalog", {
+      liveCount: liveMetrics.length,
+      liveIds: liveMetrics.map((metric) => metric.id),
+    });
+  }
   const metrics = catalog.metrics;
   const snapshots = buildMetricSnapshotsFromDefinitions(metrics);
   return {
