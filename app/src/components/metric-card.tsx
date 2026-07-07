@@ -31,6 +31,7 @@ export function MetricCard({ snapshot }: { snapshot: MetricSnapshot }) {
           </div>
           <p className="mt-1 text-base font-semibold text-[#1c1612]">{metric.name}</p>
           <p className="mt-1 text-sm text-[#4a3d33]">{metric.descriptionShort}</p>
+          <p className="mt-1.5 text-xs leading-5 text-[#6e5f52]">{metric.whyItMatters}</p>
         </div>
         <div className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold ${status.className}`}>
           {status.label}

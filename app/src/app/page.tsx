@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, BarChart3, Compass, ShieldCheck, Sparkles } from "lucide-react";
+import { BarChart3, Sparkles } from "lucide-react";
 import { MetricCard } from "@/components/metric-card";
 import { ShareButton } from "@/components/share-button";
 import { buildAggregateInterpretation, formatDate } from "@/lib/bubble";
@@ -37,24 +37,9 @@ export default async function Home() {
               <Sparkles className="h-3.5 w-3.5 text-[#da7756]" />
               <span>US markets only • educational view • {fromSupabase ? "live data" : "static fallback"}</span>
             </div>
-            <h1 className="mt-2 text-xl font-semibold text-[#1c1612] sm:text-2xl">Where are we right now?</h1>
-            <p className="mt-2 text-sm leading-7 text-[#4a3d33]">
-              Tracks US equity markets only through a transparent composite score and plain-language context, not a prediction engine.
-            </p>
-            <p className="mt-3 rounded-lg border border-[#e5ddd3] bg-[#f0ebe1] px-3 py-3 text-sm leading-7 text-[#4a3d33]">
+            <p className="mt-2 rounded-lg border border-[#e5ddd3] bg-[#f0ebe1] px-3 py-3 text-sm leading-7 text-[#4a3d33]">
               {composite.summary}
             </p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              <Link href="/learn" className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-2 text-xs font-medium text-white hover:bg-blue-500">
-                <Compass className="h-3.5 w-3.5" />
-                Bubbles that built the future
-                <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
-              <Link href="/about" className="inline-flex items-center gap-1.5 rounded-lg border border-[#d4c9bc] bg-white px-3 py-2 text-xs font-medium text-[#4a3d33] hover:bg-[#ede8df]">
-                <ShieldCheck className="h-3.5 w-3.5" />
-                Learn the methodology
-              </Link>
-            </div>
             <p className="mt-3 text-xs leading-6 text-[#6e5f52]">
               Educational only. The composite is a heuristic snapshot of valuation and sentiment extremes, not a trading signal.
             </p>
