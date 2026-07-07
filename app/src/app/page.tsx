@@ -18,7 +18,10 @@ export default async function Home() {
   const orderedSnapshots = snapshots.slice().sort((left, right) => {
     const leftPinned = pinnedMetricIds.has(left.metric.id) ? 0 : 1;
     const rightPinned = pinnedMetricIds.has(right.metric.id) ? 0 : 1;
-    return leftPinned - rightPinned;
+    if (leftPinned !== rightPinned) {
+      return leftPinned - rightPinned;
+    }
+    return right.subscore - left.subscore;
   });
   const featuredMetrics = snapshots.filter((snapshot) => snapshot.metric.includedInComposite);
   const latestDate = snapshots

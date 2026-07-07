@@ -14,15 +14,21 @@ import {
 } from "recharts";
 import type { MetricDefinition } from "@/lib/bubble";
 
+function toTs(date: string) {
+  return new Date(date).getTime();
+}
+
 function buildReferenceBands(metric: MetricDefinition) {
-  const firstDate = metric.history[0].date;
-  const lastDate = metric.history[metric.history.length - 1].date;
+  const firstTs = toTs(metric.history[0].date);
+  const lastTs = toTs(metric.history[metric.history.length - 1].date);
   return [
     { label: "Dot-com", start: "2000-01-01", end: "2002-01-01" },
     { label: "GFC", start: "2007-01-01", end: "2009-01-01" },
     { label: "COVID", start: "2020-02-01", end: "2020-03-31" },
     { label: "2022 bear", start: "2022-01-01", end: "2022-10-01" },
-  ].filter((band) => band.end >= firstDate && band.start <= lastDate);
+  ]
+    .map((band) => ({ label: band.label, start: toTs(band.start), end: toTs(band.end) }))
+    .filter((band) => band.end >= firstTs && band.start <= lastTs);
 }
 
 function formatTooltipValue(value: number, metric: MetricDefinition) {
@@ -43,7 +49,10 @@ export function MetricChart({ metric, compact = false }: { metric: MetricDefinit
   const [scaleMode, setScaleMode] = useState<"linear" | "log">("linear");
   const bands = useMemo(() => buildReferenceBands(metric), [metric]);
   const latest = metric.history[metric.history.length - 1];
-  const visibleData = metric.history;
+  const visibleData = useMemo(
+    () => metric.history.map((point) => ({ ...point, ts: toTs(point.date) })),
+    [metric.history],
+  );
 
   const isLogScaleSupported = metric.history.every((point) => point.value > 0);
 
@@ -70,7 +79,16 @@ export function MetricChart({ metric, compact = false }: { metric: MetricDefinit
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={visibleData}>
             <CartesianGrid vertical={false} stroke="#f0e7da" strokeDasharray="4 4" />
-            <XAxis dataKey="date" hide={compact} tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: "#6e5f52" }} />
+            <XAxis
+              dataKey="ts"
+              type="number"
+              domain={["dataMin", "dataMax"]}
+              hide={compact}
+              tickLine={false}
+              axisLine={false}
+              tick={{ fontSize: 11, fill: "#6e5f52" }}
+              tickFormatter={(ts) => new Date(ts).toLocaleDateString("en-US", { year: "numeric", timeZone: "UTC" })}
+            />
             <YAxis
               scale={isLogScaleSupported && scaleMode === "log" ? "log" : "linear"}
               hide={compact}
@@ -95,7 +113,7 @@ export function MetricChart({ metric, compact = false }: { metric: MetricDefinit
             <Line type="monotone" dataKey="value" stroke="#f97316" strokeWidth={3} dot={false} />
             {!compact ? (
               <ReferenceDot
-                x={latest.date}
+                x={toTs(latest.date)}
                 y={latest.value}
                 r={5}
                 fill="#da7756"
