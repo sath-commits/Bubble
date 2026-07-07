@@ -128,16 +128,17 @@ export function MetricChart({ metric, compact = false }: { metric: MetricDefinit
           </LineChart>
         </ResponsiveContainer>
       </div>
-      <div className={compact ? "mt-2 flex flex-wrap gap-1" : "mt-4 flex flex-wrap gap-2 text-xs text-[#6e5f52]"}>
+      <div className={compact ? "mt-2 flex flex-wrap gap-2" : "mt-4 flex flex-wrap gap-3 text-xs text-[#6e5f52]"}>
         {bands.map((band) => (
           <span
             key={band.label}
             className={
               compact
-                ? "rounded-full border border-[#d4c9bc] bg-white px-1.5 py-0.5 text-[9px] uppercase tracking-wide text-[#6e5f52]"
-                : "rounded-full border border-[#d4c9bc] bg-white px-2.5 py-1 text-[10px] uppercase tracking-wide text-[#6e5f52]"
+                ? "flex items-center gap-1 text-[9px] uppercase tracking-wide text-[#6e5f52]"
+                : "flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-[#6e5f52]"
             }
           >
+            <span aria-hidden className="h-2 w-2 flex-shrink-0 rounded-sm border border-[#b91c1c]/50 bg-[#ef4444]/25" />
             {band.label}
           </span>
         ))}
