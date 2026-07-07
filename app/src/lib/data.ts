@@ -1,4 +1,3 @@
-import { unstable_cache } from "next/cache";
 import {
   buildCompositeSnapshot,
   buildMetricSnapshotsFromDefinitions,
@@ -76,20 +75,39 @@ async function fetchAllMetricValues(
   supabase: NonNullable<ReturnType<typeof createPublicSupabaseClient>>,
 ): Promise<{ rows: MetricValueRow[]; error: unknown }> {
   const pageSize = 1000;
-  const rows: MetricValueRow[] = [];
-  for (let offset = 0; ; offset += pageSize) {
-    const { data, error } = await supabase
-      .from("metric_values")
-      .select("metric_id,date,value")
-      .order("date")
-      .range(offset, offset + pageSize - 1);
-    if (error) {
-      return { rows, error };
+  const first = await supabase
+    .from("metric_values")
+    .select("metric_id,date,value", { count: "exact" })
+    .order("date")
+    .range(0, pageSize - 1);
+  if (first.error) {
+    return { rows: [], error: first.error };
+  }
+
+  const rows: MetricValueRow[] = [...((first.data ?? []) as MetricValueRow[])];
+  const total = first.count ?? rows.length;
+
+  const remainingOffsets: number[] = [];
+  for (let offset = pageSize; offset < total; offset += pageSize) {
+    remainingOffsets.push(offset);
+  }
+
+  // Total row count is known up front, so the rest of the pages can be requested
+  // concurrently instead of waiting on 50+ sequential round trips to Supabase.
+  const remainingPages = await Promise.all(
+    remainingOffsets.map((offset) =>
+      supabase
+        .from("metric_values")
+        .select("metric_id,date,value")
+        .order("date")
+        .range(offset, offset + pageSize - 1),
+    ),
+  );
+  for (const page of remainingPages) {
+    if (page.error) {
+      return { rows, error: page.error };
     }
-    rows.push(...((data ?? []) as MetricValueRow[]));
-    if (!data || data.length < pageSize) {
-      break;
-    }
+    rows.push(...((page.data ?? []) as MetricValueRow[]));
   }
   return { rows, error: null };
 }
@@ -140,9 +158,28 @@ async function fetchLiveDashboardData(): Promise<DashboardData> {
 
 // Ingestion runs once a day (see .github/workflows/market-bubble-ingest.yml), so an hour of
 // staleness is invisible to users but saves a full metric_values table scan on every request.
-const getCachedLiveDashboardData = unstable_cache(fetchLiveDashboardData, ["dashboard-data"], {
-  revalidate: 3600,
-});
+// Plain in-process memoization: Next's unstable_cache refuses to store entries over 2MB, and
+// the full dashboard payload (~5MB serialized) blows past that limit every time.
+const CACHE_TTL_MS = 60 * 60 * 1000;
+let cachedLiveData: { data: DashboardData; expiresAt: number } | null = null;
+let inflightFetch: Promise<DashboardData> | null = null;
+
+async function getCachedLiveDashboardData(): Promise<DashboardData> {
+  if (cachedLiveData && cachedLiveData.expiresAt > Date.now()) {
+    return cachedLiveData.data;
+  }
+  if (!inflightFetch) {
+    inflightFetch = fetchLiveDashboardData()
+      .then((data) => {
+        cachedLiveData = { data, expiresAt: Date.now() + CACHE_TTL_MS };
+        return data;
+      })
+      .finally(() => {
+        inflightFetch = null;
+      });
+  }
+  return inflightFetch;
+}
 
 export async function getDashboardData(): Promise<DashboardData> {
   try {
