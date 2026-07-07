@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Bell, Pin, Plus, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Bell, Pin, Plus, ShieldCheck } from "lucide-react";
 import { disclaimerCopy, formatDate } from "@/lib/bubble";
 import { getDashboardData } from "@/lib/data";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -31,6 +31,10 @@ export default async function AccountPage() {
   if (!supabase) {
     return (
       <main className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-3 py-4 sm:px-6 sm:py-5">
+      <Link href="/" className="flex w-fit items-center gap-1.5 text-sm font-medium text-[#4a3d33] hover:text-[#da7756]">
+        <ArrowLeft className="h-3.5 w-3.5" />
+        Back to dashboard
+      </Link>
         <section className="rounded-xl border border-[#e5ddd3] bg-white p-4">
           <h1 className="text-xl font-semibold text-[#1c1612]">Accounts need Supabase env vars</h1>
           <p className="mt-3 text-sm leading-7 text-[#4a3d33]">
@@ -48,6 +52,10 @@ export default async function AccountPage() {
   if (!user) {
     return (
       <main className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-3 py-4 sm:px-6 sm:py-5">
+      <Link href="/" className="flex w-fit items-center gap-1.5 text-sm font-medium text-[#4a3d33] hover:text-[#da7756]">
+        <ArrowLeft className="h-3.5 w-3.5" />
+        Back to dashboard
+      </Link>
         <section className="rounded-xl border border-[#e5ddd3] bg-white p-4">
           <div className="text-[10px] uppercase tracking-wide text-[#9e9087]">Account</div>
           <h1 className="mt-2 text-xl font-semibold text-[#1c1612]">Sign in to set personal reminders</h1>
@@ -73,6 +81,10 @@ export default async function AccountPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-3 py-4 sm:px-6 sm:py-5">
+      <Link href="/" className="flex w-fit items-center gap-1.5 text-sm font-medium text-[#4a3d33] hover:text-[#da7756]">
+        <ArrowLeft className="h-3.5 w-3.5" />
+        Back to dashboard
+      </Link>
       {unread.length ? (
         <section className="rounded-xl border border-amber-400 bg-amber-50 p-4 text-sm leading-7 text-amber-900">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">

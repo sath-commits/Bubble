@@ -1,8 +1,13 @@
 import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 
 export default function PrivacyPage() {
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-3 py-4 sm:px-6 sm:py-5">
+      <Link href="/" className="flex w-fit items-center gap-1.5 text-sm font-medium text-[#4a3d33] hover:text-[#da7756]">
+        <ArrowLeft className="h-3.5 w-3.5" />
+        Back to dashboard
+      </Link>
       <section className="rounded-xl border border-[#e5ddd3] bg-white p-4 sm:p-5">
         <div className="text-[10px] uppercase tracking-wide text-[#9e9087]">Privacy</div>
         <h1 className="mt-2 text-xl font-semibold text-[#1c1612]">Simple privacy policy</h1>

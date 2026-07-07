@@ -62,10 +62,12 @@ export default async function RootLayout({
           <header className="border-b border-[#e5ddd3] bg-[#f7f2eb]">
             <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-3 py-2 sm:px-6 sm:py-3">
               <div className="flex min-w-0 items-center gap-1.5 sm:gap-2.5">
-                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border border-[#e5ddd3] bg-white text-[#da7756]">
-                  <Sparkles className="h-4 w-4" />
-                </div>
-                <span className="whitespace-nowrap text-sm font-semibold text-[#1c1612] sm:text-base">Bubble Tracker</span>
+                <Link href="/" className="flex flex-shrink-0 items-center gap-1.5 sm:gap-2.5">
+                  <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border border-[#e5ddd3] bg-white text-[#da7756]">
+                    <Sparkles className="h-4 w-4" />
+                  </div>
+                  <span className="whitespace-nowrap text-sm font-semibold text-[#1c1612] sm:text-base">Bubble Tracker</span>
+                </Link>
                 <nav className="ml-1 flex items-center gap-0.5 overflow-x-auto sm:ml-3">
                   <Link href="/" className="flex flex-shrink-0 items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-medium text-[#4a3d33] hover:bg-[#ede8df] sm:px-3 sm:gap-1.5">
                     <Sparkles className="h-3.5 w-3.5 text-[#da7756]" />
