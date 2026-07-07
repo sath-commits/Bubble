@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildCompositeSnapshot, buildMetricSnapshots, resolveZone } from "./bubble";
+import { buildCompositeSnapshot, buildMetricSnapshots, getMetrics, resolveMetricCatalog, resolveZone } from "./bubble";
 
 describe("bubble scoring", () => {
   it("produces a stable composite score and a named zone", () => {
@@ -19,5 +19,14 @@ describe("bubble scoring", () => {
 
     expect(topDriver).toBeDefined();
     expect(topDriver?.subscore).toBeGreaterThanOrEqual(0);
+  });
+
+  it("falls back to the seeded catalog when live metrics are sparse", () => {
+    const fallbackMetrics = getMetrics();
+    const sparseLiveMetrics = fallbackMetrics.slice(0, 2);
+    const resolved = resolveMetricCatalog(sparseLiveMetrics, fallbackMetrics);
+
+    expect(resolved.metrics).toEqual(fallbackMetrics);
+    expect(resolved.fromSupabase).toBe(false);
   });
 });

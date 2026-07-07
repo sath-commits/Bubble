@@ -41,16 +41,9 @@ function formatTooltipValue(value: number, metric: MetricDefinition) {
 
 export function MetricChart({ metric, compact = false }: { metric: MetricDefinition; compact?: boolean }) {
   const [scaleMode, setScaleMode] = useState<"linear" | "log">("linear");
-  const [windowMode, setWindowMode] = useState<"default" | "max">("default");
   const bands = useMemo(() => buildReferenceBands(metric), [metric]);
   const latest = metric.history[metric.history.length - 1];
-
-  const visibleData = useMemo(() => {
-    if (compact || windowMode === "max") {
-      return metric.history;
-    }
-    return metric.history.filter((point) => point.date >= "1998-01-01");
-  }, [compact, metric.history, windowMode]);
+  const visibleData = metric.history;
 
   const isLogScaleSupported = metric.history.every((point) => point.value > 0);
 
@@ -59,16 +52,9 @@ export function MetricChart({ metric, compact = false }: { metric: MetricDefinit
       <div className={compact ? "sr-only" : "mb-2 flex items-center justify-between gap-3"}>
         <div>
           <p className="text-[10px] uppercase tracking-wide text-[#9e9087]">Historical context</p>
-          <p className="text-xs text-[#6e5f52]">Default view starts in 1998; shaded bands mark major stress windows.</p>
+          <p className="text-xs text-[#6e5f52]">Shaded bands mark major stress windows.</p>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setWindowMode(windowMode === "default" ? "max" : "default")}
-            className="rounded border border-[#d4c9bc] bg-white px-2 py-1 text-[10px] font-medium text-[#4a3d33]"
-          >
-            {windowMode === "default" ? "Since 1998" : "Max"}
-          </button>
           {isLogScaleSupported ? (
             <button
               type="button"
@@ -95,7 +81,7 @@ export function MetricChart({ metric, compact = false }: { metric: MetricDefinit
             />
             <Tooltip
               formatter={(value) => formatTooltipValue(Number(value), metric)}
-              labelFormatter={(label) => new Date(label).toLocaleDateString("en-US", { month: "short", year: "numeric" })}
+              labelFormatter={(label) => new Date(label).toLocaleDateString("en-US", { month: "short", year: "numeric", timeZone: "UTC" })}
             />
             {bands.map((band) => (
               <ReferenceArea
@@ -120,15 +106,20 @@ export function MetricChart({ metric, compact = false }: { metric: MetricDefinit
           </LineChart>
         </ResponsiveContainer>
       </div>
-      {compact ? null : (
-        <div className="mt-4 flex flex-wrap gap-2 text-xs text-[#6e5f52]">
-          {bands.map((band) => (
-            <span key={band.label} className="rounded-full border border-[#d4c9bc] bg-white px-2.5 py-1 text-[10px] uppercase tracking-wide text-[#6e5f52]">
-              {band.label}
-            </span>
-          ))}
-        </div>
-      )}
+      <div className={compact ? "mt-2 flex flex-wrap gap-1" : "mt-4 flex flex-wrap gap-2 text-xs text-[#6e5f52]"}>
+        {bands.map((band) => (
+          <span
+            key={band.label}
+            className={
+              compact
+                ? "rounded-full border border-[#d4c9bc] bg-white px-1.5 py-0.5 text-[9px] uppercase tracking-wide text-[#6e5f52]"
+                : "rounded-full border border-[#d4c9bc] bg-white px-2.5 py-1 text-[10px] uppercase tracking-wide text-[#6e5f52]"
+            }
+          >
+            {band.label}
+          </span>
+        ))}
+      </div>
     </div>
   );
 }

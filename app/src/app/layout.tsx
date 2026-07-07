@@ -87,20 +87,21 @@ export default async function RootLayout({
                     <Lightbulb className="h-3.5 w-3.5" />
                     <span className="hidden sm:inline">Ideas</span>
                   </Link>
-                  <Link href="/account" className="flex flex-shrink-0 items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-medium text-[#9e9087] hover:bg-[#ede8df] sm:px-3 sm:gap-1.5">
-                    <Bell className="h-3.5 w-3.5" />
-                    <span className="hidden sm:inline">Account</span>
-                  </Link>
                 </nav>
               </div>
               <div className="flex flex-shrink-0 items-center gap-2 text-xs text-[#6e5f52]">
-                <span className="rounded border border-[#d4c9bc] bg-white px-2 py-1">🇺🇸 US markets</span>
+                <span className="hidden rounded border border-[#d4c9bc] bg-white px-2 py-1 sm:inline">🇺🇸 US markets</span>
+                <Link
+                  href="/account"
+                  className="flex items-center gap-1.5 rounded-lg border border-[#d4c9bc] bg-white px-3 py-1.5 text-xs font-medium text-[#4a3d33] hover:bg-[#ede8df]"
+                >
+                  <Bell className="h-3.5 w-3.5" />
+                  {user ? "Account" : "Sign in"}
+                </Link>
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-2 border-t border-[#e5ddd3]/60 px-3 py-2 text-xs text-[#9e9087] sm:px-6">
               <span>Latest data: {formatDate(latestDate)}</span>
-              <span className="text-[#d4c9bc]">·</span>
-              <span>Educational only</span>
               {unreadCount ? (
                 <>
                   <span className="text-[#d4c9bc]">·</span>

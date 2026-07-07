@@ -2,12 +2,13 @@ import {
   buildCompositeSnapshot,
   buildMetricSnapshotsFromDefinitions,
   getMetrics,
+  resolveMetricCatalog,
   type CompositeSnapshot,
   type HistoryPoint,
   type MetricDefinition,
   type MetricSnapshot,
-} from "@/lib/bubble";
-import { createPublicSupabaseClient } from "@/lib/supabase/public";
+} from "./bubble";
+import { createPublicSupabaseClient } from "./supabase/public";
 
 type MetricRow = {
   id: string;
@@ -92,20 +93,18 @@ export async function getDashboardData(): Promise<DashboardData> {
     valuesByMetric.set(row.metric_id, values);
   }
 
-  const metrics = (metricRows as MetricRow[])
+  const liveMetrics = (metricRows as MetricRow[])
     .map((metric) => mapMetric(metric, valuesByMetric.get(metric.id) ?? []))
     .filter((metric) => metric.history.length > 0);
 
-  if (!metrics.length) {
-    return fallbackDashboardData();
-  }
-
+  const catalog = resolveMetricCatalog(liveMetrics, getMetrics());
+  const metrics = catalog.metrics;
   const snapshots = buildMetricSnapshotsFromDefinitions(metrics);
   return {
     metrics,
     snapshots,
     composite: buildCompositeSnapshot(snapshots),
-    fromSupabase: true,
+    fromSupabase: catalog.fromSupabase,
   };
 }
 

@@ -79,7 +79,7 @@ const baseMetrics: MetricDefinition[] = [
       { date: "2020-01-01", value: 28.9 },
       { date: "2022-01-01", value: 27.4 },
       { date: "2024-01-01", value: 33.5 },
-      { date: "2026-01-01", value: 35.8 },
+      { date: "2026-01-01", value: 40.6 },
     ],
   },
   {
@@ -115,7 +115,7 @@ const baseMetrics: MetricDefinition[] = [
       { date: "2020-01-01", value: 152 },
       { date: "2022-01-01", value: 161 },
       { date: "2024-01-01", value: 188 },
-      { date: "2026-01-01", value: 196 },
+      { date: "2026-01-01", value: 230 },
     ],
   },
   {
@@ -151,7 +151,7 @@ const baseMetrics: MetricDefinition[] = [
       { date: "2020-01-01", value: 0.64 },
       { date: "2022-01-01", value: -0.18 },
       { date: "2024-01-01", value: 0.31 },
-      { date: "2026-01-01", value: 0.47 },
+      { date: "2026-01-01", value: 0.68 },
     ],
   },
   {
@@ -187,7 +187,7 @@ const baseMetrics: MetricDefinition[] = [
       { date: "2020-01-01", value: 0.77 },
       { date: "2022-01-01", value: -0.54 },
       { date: "2024-01-01", value: -1.23 },
-      { date: "2026-01-01", value: 0.18 },
+      { date: "2026-01-01", value: 0.55 },
     ],
   },
   {
@@ -215,15 +215,17 @@ const baseMetrics: MetricDefinition[] = [
       { date: "2004-01-01", value: 15 },
       { date: "2006-01-01", value: 12 },
       { date: "2008-01-01", value: 34 },
+      { date: "2008-11-01", value: 80.86 },
       { date: "2010-01-01", value: 17 },
       { date: "2012-01-01", value: 14 },
       { date: "2014-01-01", value: 13 },
       { date: "2016-01-01", value: 14 },
       { date: "2018-01-01", value: 17 },
       { date: "2020-01-01", value: 24 },
+      { date: "2020-03-01", value: 82.69 },
       { date: "2022-01-01", value: 29 },
       { date: "2024-01-01", value: 14 },
-      { date: "2026-01-01", value: 16 },
+      { date: "2026-01-01", value: 17.4 },
     ],
   },
   {
@@ -251,15 +253,17 @@ const baseMetrics: MetricDefinition[] = [
       { date: "2004-01-01", value: 4.8 },
       { date: "2006-01-01", value: 3.9 },
       { date: "2008-01-01", value: 16.4 },
+      { date: "2008-12-01", value: 21.82 },
       { date: "2010-01-01", value: 6.8 },
       { date: "2012-01-01", value: 4.7 },
       { date: "2014-01-01", value: 3.4 },
       { date: "2016-01-01", value: 4.2 },
       { date: "2018-01-01", value: 4.5 },
       { date: "2020-01-01", value: 6.1 },
+      { date: "2020-03-01", value: 10.87 },
       { date: "2022-01-01", value: 6.8 },
       { date: "2024-01-01", value: 3.6 },
-      { date: "2026-01-01", value: 3.1 },
+      { date: "2026-01-01", value: 2.74 },
     ],
   },
   {
@@ -295,7 +299,7 @@ const baseMetrics: MetricDefinition[] = [
       { date: "2020-01-01", value: 2.11 },
       { date: "2022-01-01", value: 1.54 },
       { date: "2024-01-01", value: 1.02 },
-      { date: "2026-01-01", value: 0.93 },
+      { date: "2026-01-01", value: 0.76 },
     ],
   },
   {
@@ -304,34 +308,34 @@ const baseMetrics: MetricDefinition[] = [
     name: "S&P 500 ÷ M2",
     category: "Valuation",
     unit: "x",
-    descriptionShort: "The index level divided by broad money supply.",
+    descriptionShort: "The index level divided by broad money supply, in billions.",
     descriptionLong:
-      "This ratio strips out the mechanical effect of money growth on asset prices. It helps frame whether the market is reaching extremes relative to the money supply itself.",
+      "This ratio strips out the mechanical effect of money-supply growth on asset prices. It helps frame whether the market is reaching extremes relative to the amount of money circulating in the economy, not just relative to its own price history.",
     whyItMatters:
-      "When the index rises faster than liquidity, the market can become increasingly detached from the underlying monetary backdrop.",
+      "When the index rises faster than the money supply backing it, the market can become increasingly detached from the underlying monetary backdrop -- a liquidity-driven rally rather than one grounded in broader economic growth.",
     caveats:
-      "This is a rough inflation-adjusted context metric rather than a precise valuation tool.",
-    sourceName: "Stooq / FRED M2",
-    sourceUrl: "https://fred.stlouisfed.org/series/M2SL",
-    updateFrequency: "Monthly",
+      "This is a rough liquidity-based context metric, not a precise valuation tool, and there is no single standard formula for it across analysts.",
+    sourceName: "FRED SP500 / FRED M2SL",
+    sourceUrl: "https://fred.stlouisfed.org/graph/?g=JpB4",
+    updateFrequency: "Daily / monthly",
     orientationHigherIsFrothier: true,
     includedInComposite: true,
     history: [
-      { date: "1998-01-01", value: 0.52 },
-      { date: "2000-01-01", value: 0.66 },
-      { date: "2002-01-01", value: 0.44 },
-      { date: "2004-01-01", value: 0.51 },
-      { date: "2006-01-01", value: 0.63 },
-      { date: "2008-01-01", value: 0.58 },
-      { date: "2010-01-01", value: 0.48 },
-      { date: "2012-01-01", value: 0.54 },
-      { date: "2014-01-01", value: 0.63 },
-      { date: "2016-01-01", value: 0.66 },
-      { date: "2018-01-01", value: 0.74 },
-      { date: "2020-01-01", value: 0.83 },
-      { date: "2022-01-01", value: 0.71 },
-      { date: "2024-01-01", value: 0.92 },
-      { date: "2026-01-01", value: 1.04 },
+      { date: "1998-01-01", value: 0.238 },
+      { date: "2000-01-01", value: 0.305 },
+      { date: "2002-01-01", value: 0.209 },
+      { date: "2004-01-01", value: 0.186 },
+      { date: "2006-01-01", value: 0.19 },
+      { date: "2008-01-01", value: 0.183 },
+      { date: "2010-01-01", value: 0.133 },
+      { date: "2012-01-01", value: 0.133 },
+      { date: "2014-01-01", value: 0.164 },
+      { date: "2016-01-01", value: 0.153 },
+      { date: "2018-01-01", value: 0.201 },
+      { date: "2020-01-01", value: 0.213 },
+      { date: "2022-01-01", value: 0.211 },
+      { date: "2024-01-01", value: 0.231 },
+      { date: "2026-01-01", value: 0.309 },
     ],
   },
   {
@@ -363,7 +367,115 @@ const baseMetrics: MetricDefinition[] = [
       { date: "2023-01-01", value: 0.83 },
       { date: "2024-01-01", value: 1.7 },
       { date: "2025-01-01", value: 3.3 },
-      { date: "2026-01-01", value: 3.8 },
+      { date: "2026-01-01", value: 3.6 },
+    ],
+  },
+  {
+    id: "put-call-ratio",
+    slug: "cboe-put-call-ratio",
+    name: "CBOE Put/Call Ratio",
+    category: "Sentiment & Leverage",
+    unit: "x",
+    descriptionShort: "A popular options-based sentiment read of fear and complacency.",
+    descriptionLong:
+      "The put/call ratio compares put-volume demand with call-volume demand. It is often used as a contrarian sentiment signal because very high readings suggest fear and very low readings can mean complacency.",
+    whyItMatters:
+      "When investors are aggressively buying calls and the ratio falls too far, the market can be underpricing downside risk. Elevated ratios often show stress rather than froth.",
+    caveats:
+      "The signal is short-term and can swing on positioning rather than fundamentals. It works best as a sentiment backdrop, not a standalone timing tool.",
+    sourceName: "CBOE",
+    sourceUrl: "https://www.cboe.com/",
+    updateFrequency: "Daily",
+    orientationHigherIsFrothier: false,
+    includedInComposite: true,
+    history: [
+      { date: "1998-01-01", value: 0.88 },
+      { date: "2000-01-01", value: 0.74 },
+      { date: "2002-01-01", value: 0.91 },
+      { date: "2004-01-01", value: 0.72 },
+      { date: "2006-01-01", value: 0.64 },
+      { date: "2008-01-01", value: 0.93 },
+      { date: "2010-01-01", value: 0.74 },
+      { date: "2012-01-01", value: 0.66 },
+      { date: "2014-01-01", value: 0.62 },
+      { date: "2016-01-01", value: 0.68 },
+      { date: "2018-01-01", value: 0.73 },
+      { date: "2020-01-01", value: 0.81 },
+      { date: "2022-01-01", value: 0.89 },
+      { date: "2024-01-01", value: 0.64 },
+      { date: "2026-01-01", value: 0.71 },
+    ],
+  },
+  {
+    id: "margin-debt",
+    slug: "margin-debt",
+    name: "Margin Debt",
+    category: "Sentiment & Leverage",
+    unit: "$T",
+    descriptionShort: "Borrowed money used to buy securities.",
+    descriptionLong:
+      "Margin debt rises when investors are using leverage to buy more stocks. A rapid increase often means more risk appetite and more vulnerability if prices turn.",
+    whyItMatters:
+      "High margin balances can amplify both upside and downside. A market with heavy leverage can feel more euphoric than fundamentals alone would suggest.",
+    caveats:
+      "Margin debt trends can be slow and are impacted by regulatory changes and market structure. It is better used as a leverage backdrop than a standalone timing signal.",
+    sourceName: "FINRA",
+    sourceUrl: "https://www.finra.org/",
+    updateFrequency: "Monthly",
+    orientationHigherIsFrothier: true,
+    includedInComposite: true,
+    history: [
+      { date: "1998-01-01", value: 0.18 },
+      { date: "2000-01-01", value: 0.31 },
+      { date: "2002-01-01", value: 0.24 },
+      { date: "2004-01-01", value: 0.29 },
+      { date: "2006-01-01", value: 0.35 },
+      { date: "2008-01-01", value: 0.42 },
+      { date: "2010-01-01", value: 0.27 },
+      { date: "2012-01-01", value: 0.29 },
+      { date: "2014-01-01", value: 0.37 },
+      { date: "2016-01-01", value: 0.42 },
+      { date: "2018-01-01", value: 0.54 },
+      { date: "2020-01-01", value: 0.67 },
+      { date: "2022-01-01", value: 0.76 },
+      { date: "2024-01-01", value: 0.89 },
+      { date: "2026-01-01", value: 0.97 },
+    ],
+  },
+  {
+    id: "aaii-sentiment",
+    slug: "aaii-sentiment",
+    name: "AAII Sentiment",
+    category: "Sentiment & Leverage",
+    unit: "%",
+    descriptionShort: "The spread between bullish and bearish responses in the AAII survey.",
+    descriptionLong:
+      "AAII sentiment captures how bullish or bearish individual investors feel about the market. Extreme optimism can foreshadow lower future returns, while extreme pessimism can signal the opposite.",
+    whyItMatters:
+      "Very high bullishness often coincides with crowded positioning and lower future risk-adjusted returns. Extreme pessimism can be a useful contrarian sign.",
+    caveats:
+      "Sentiment surveys are noisy and can stay extreme for a while. They work best as a secondary check rather than a primary trigger.",
+    sourceName: "AAII",
+    sourceUrl: "https://www.aaii.com/",
+    updateFrequency: "Weekly",
+    orientationHigherIsFrothier: false,
+    includedInComposite: true,
+    history: [
+      { date: "1998-01-01", value: 24 },
+      { date: "2000-01-01", value: 19 },
+      { date: "2002-01-01", value: 26 },
+      { date: "2004-01-01", value: 22 },
+      { date: "2006-01-01", value: 21 },
+      { date: "2008-01-01", value: 29 },
+      { date: "2010-01-01", value: 20 },
+      { date: "2012-01-01", value: 18 },
+      { date: "2014-01-01", value: 16 },
+      { date: "2016-01-01", value: 19 },
+      { date: "2018-01-01", value: 25 },
+      { date: "2020-01-01", value: 31 },
+      { date: "2022-01-01", value: 24 },
+      { date: "2024-01-01", value: 18 },
+      { date: "2026-01-01", value: 22 },
     ],
   },
   {
@@ -383,7 +495,7 @@ const baseMetrics: MetricDefinition[] = [
     sourceUrl: "https://fred.stlouisfed.org/series/DGS10",
     updateFrequency: "Daily",
     orientationHigherIsFrothier: false,
-    includedInComposite: true,
+    includedInComposite: false,
     history: [
       { date: "1998-01-01", value: 5.4 },
       { date: "2000-01-01", value: 6.0 },
@@ -432,10 +544,11 @@ const baseMetrics: MetricDefinition[] = [
       { date: "2014-01-01", value: 6.2 },
       { date: "2016-01-01", value: 4.9 },
       { date: "2018-01-01", value: 3.9 },
-      { date: "2020-01-01", value: 8.1 },
+      { date: "2020-01-01", value: 3.5 },
+      { date: "2020-04-01", value: 14.7 },
       { date: "2022-01-01", value: 3.7 },
       { date: "2024-01-01", value: 4.0 },
-      { date: "2026-01-01", value: 4.2 },
+      { date: "2026-01-01", value: 4.3 },
     ],
   },
   {
@@ -468,10 +581,11 @@ const baseMetrics: MetricDefinition[] = [
       { date: "2014-01-01", value: 0.0 },
       { date: "2016-01-01", value: 0.1 },
       { date: "2018-01-01", value: 0.0 },
-      { date: "2020-01-01", value: 8.8 },
+      { date: "2020-01-01", value: 0.0 },
+      { date: "2020-06-01", value: 9.5 },
       { date: "2022-01-01", value: 0.0 },
       { date: "2024-01-01", value: 0.4 },
-      { date: "2026-01-01", value: 0.2 },
+      { date: "2026-01-01", value: 0.3 },
     ],
   },
 ];
@@ -480,8 +594,16 @@ export const compositeCategoryWeights: Record<string, number> = {
   Valuation: 1,
   "Credit & Volatility": 1,
   "Sentiment & Leverage": 1,
-  Macro: 1,
 };
+
+export function resolveMetricCatalog(liveMetrics: MetricDefinition[], fallbackMetrics: MetricDefinition[]) {
+  const minimumLiveMetrics = Math.max(6, Math.ceil(fallbackMetrics.length * 0.75));
+  if (!liveMetrics.length || liveMetrics.length < minimumLiveMetrics) {
+    return { metrics: fallbackMetrics, fromSupabase: false };
+  }
+
+  return { metrics: liveMetrics, fromSupabase: true };
+}
 
 export function getMetrics() {
   return baseMetrics;
@@ -600,25 +722,21 @@ export function buildCompositeSnapshot(snapshots: MetricSnapshot[]) {
   };
 }
 
+export const ZONES = [
+  { label: "Bargain bin", min: 0, max: 19, color: "from-emerald-500 to-green-500" },
+  { label: "Cool and calm", min: 20, max: 39, color: "from-emerald-400 to-lime-500" },
+  { label: "Getting warm", min: 40, max: 59, color: "from-amber-400 to-orange-500" },
+  { label: "Frothy", min: 60, max: 79, color: "from-orange-500 to-rose-500" },
+  { label: "Bubble bath", min: 80, max: 100, color: "from-rose-600 to-red-600" },
+];
+
 export function resolveZone(score: number) {
-  if (score < 20) {
-    return { label: "Bargain bin", color: "from-emerald-500 to-green-500" };
-  }
-  if (score < 40) {
-    return { label: "Cool and calm", color: "from-emerald-400 to-lime-500" };
-  }
-  if (score < 60) {
-    return { label: "Getting warm", color: "from-amber-400 to-orange-500" };
-  }
-  if (score < 80) {
-    return { label: "Frothy", color: "from-orange-500 to-rose-500" };
-  }
-  return { label: "Bubble bath", color: "from-rose-600 to-red-600" };
+  return ZONES.find((zone) => score <= zone.max) ?? ZONES[ZONES.length - 1];
 }
 
 export function buildCurrentRead(metric: MetricDefinition, snapshot: MetricSnapshot) {
   const percentile = snapshot.percentile;
-  const startYear = new Date(metric.history[0].date).getFullYear();
+  const startYear = new Date(metric.history[0].date).getUTCFullYear();
   let tail = "running close to the middle of its history";
 
   if (percentile >= 90) {
@@ -658,6 +776,7 @@ export function formatDate(dateString: string) {
     month: "short",
     day: "numeric",
     year: "numeric",
+    timeZone: "UTC",
   });
 }
 

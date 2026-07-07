@@ -1,8 +1,7 @@
-import Link from "next/link";
 import { BarChart3, Sparkles } from "lucide-react";
 import { MetricCard } from "@/components/metric-card";
 import { ShareButton } from "@/components/share-button";
-import { buildAggregateInterpretation, formatDate } from "@/lib/bubble";
+import { buildAggregateInterpretation, formatDate, ZONES } from "@/lib/bubble";
 import { getDashboardData } from "@/lib/data";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -22,7 +21,6 @@ export default async function Home() {
     return leftPinned - rightPinned;
   });
   const featuredMetrics = snapshots.filter((snapshot) => snapshot.metric.includedInComposite);
-  const hotMetrics = featuredMetrics.filter((snapshot) => snapshot.subscore >= 70);
   const latestDate = snapshots
     .map((snapshot) => snapshot.latestDate)
     .sort()
@@ -43,6 +41,37 @@ export default async function Home() {
             <p className="mt-3 text-xs leading-6 text-[#6e5f52]">
               Educational only. The composite is a heuristic snapshot of valuation and sentiment extremes, not a trading signal.
             </p>
+            <div className="mt-4">
+              <div className="text-[10px] uppercase tracking-wide text-[#9e9087]">Bubble stages</div>
+              <div className="relative mt-3">
+                <div className="flex overflow-hidden rounded-full">
+                  {ZONES.map((zone) => (
+                    <div key={zone.label} className={`h-2 flex-1 bg-gradient-to-r ${zone.color}`} />
+                  ))}
+                </div>
+                <div
+                  className="absolute top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-[#1c1612] shadow"
+                  style={{ left: `${composite.score}%` }}
+                />
+              </div>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {ZONES.map((zone) => {
+                  const active = zone.label === composite.zone;
+                  return (
+                    <span
+                      key={zone.label}
+                      className={
+                        active
+                          ? "rounded-full border border-[#da7756] bg-[#da7756] px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white"
+                          : "rounded-full border border-[#d4c9bc] bg-white px-2 py-0.5 text-[9px] uppercase tracking-wide text-[#9e9087]"
+                      }
+                    >
+                      {zone.label}
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
           </div>
           <div className="rounded-lg border border-[#e5ddd3] bg-[#f7f2eb] p-4">
             <div className="flex items-center gap-2 text-[10px] uppercase tracking-wide text-[#9e9087]">
@@ -73,57 +102,12 @@ export default async function Home() {
             </div>
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-3 px-4 py-4 sm:grid-cols-4 sm:px-5">
-          <div className="rounded-lg border border-[#e5ddd3] bg-white px-3 py-3">
-            <div className="text-[10px] uppercase tracking-wide text-[#9e9087]">Status</div>
-            <div className="mt-1 text-xl font-bold text-[#1c1612]">{composite.zone}</div>
-            <div className="mt-0.5 text-[10px] text-[#b8ad9e]">Composite state</div>
-          </div>
-          <div className="rounded-lg border border-[#e5ddd3] bg-white px-3 py-3">
-            <div className="text-[10px] uppercase tracking-wide text-[#9e9087]">Leading signals</div>
-            <div className="mt-1 text-xl font-bold text-[#1c1612]">{hotMetrics.length}</div>
-            <div className="mt-0.5 text-[10px] text-[#b8ad9e]">Hot metrics</div>
-          </div>
-          <div className="rounded-lg border border-[#e5ddd3] bg-white px-3 py-3">
-            <div className="text-[10px] uppercase tracking-wide text-[#9e9087]">Scope</div>
-            <div className="mt-1 text-xl font-bold text-[#1c1612]">US</div>
-            <div className="mt-0.5 text-[10px] text-[#b8ad9e]">Single-market view</div>
-          </div>
-          <div className="rounded-lg border border-[#e5ddd3] bg-white px-3 py-3">
-            <div className="text-[10px] uppercase tracking-wide text-[#9e9087]">Read</div>
-            <div className="mt-1 text-xl font-bold text-[#1c1612]">Plain</div>
-            <div className="mt-0.5 text-[10px] text-[#b8ad9e]">Not a timing tool</div>
-          </div>
-        </div>
       </section>
 
       <section className="grid gap-3 sm:grid-cols-2">
         {orderedSnapshots.map((snapshot) => (
           <MetricCard key={snapshot.metric.id} snapshot={snapshot} />
         ))}
-      </section>
-
-      <section className="rounded-xl border border-[#e5ddd3] bg-white px-4 py-4 sm:px-5 sm:py-5">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <div className="text-[10px] uppercase tracking-wide text-[#9e9087]">Context</div>
-            <h2 className="mt-1 text-base font-semibold text-[#1c1612]">What this is telling us now</h2>
-            <p className="mt-2 max-w-2xl text-sm leading-7 text-[#4a3d33]">
-              The dashboard leads with the composite meter and the plain-language readout, then backs it up with charted evidence and the underlying metric definitions.
-            </p>
-            <div className="mt-4 grid gap-2 sm:grid-cols-2">
-              {Object.entries(composite.categoryScores).map(([category, score]) => (
-                <div key={category} className="rounded-lg border border-[#e5ddd3] bg-[#f7f2eb] px-3 py-2">
-                  <div className="text-[10px] uppercase tracking-wide text-[#9e9087]">{category}</div>
-                  <div className="mt-1 text-lg font-bold text-[#1c1612]">{Math.round(score)}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-          <Link href="/sources" className="text-sm font-semibold text-[#da7756]">
-            View data sources →
-          </Link>
-        </div>
       </section>
     </main>
   );
