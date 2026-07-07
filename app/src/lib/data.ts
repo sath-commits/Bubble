@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import {
   buildCompositeSnapshot,
   buildMetricSnapshotsFromDefinitions,
@@ -93,10 +94,10 @@ async function fetchAllMetricValues(
   return { rows, error: null };
 }
 
-export async function getDashboardData(): Promise<DashboardData> {
+async function fetchLiveDashboardData(): Promise<DashboardData> {
   const supabase = createPublicSupabaseClient();
   if (!supabase) {
-    return fallbackDashboardData();
+    throw new Error("fetchLiveDashboardData: Supabase is not configured");
   }
 
   const [{ data: metricRows, error: metricError }, { rows: valueRows, error: valueError }] = await Promise.all([
@@ -105,10 +106,8 @@ export async function getDashboardData(): Promise<DashboardData> {
   ]);
 
   if (metricError || valueError || !metricRows?.length) {
-    if (metricError || valueError) {
-      console.error("getDashboardData: falling back to static catalog", { metricError, valueError });
-    }
-    return fallbackDashboardData();
+    console.error("fetchLiveDashboardData: falling back to static catalog", { metricError, valueError });
+    throw new Error("fetchLiveDashboardData: failed to load live data");
   }
 
   const valuesByMetric = new Map<string, HistoryPoint[]>();
@@ -124,7 +123,7 @@ export async function getDashboardData(): Promise<DashboardData> {
 
   const catalog = resolveMetricCatalog(liveMetrics, getMetrics());
   if (!catalog.fromSupabase) {
-    console.warn("getDashboardData: live metrics below threshold, using static catalog", {
+    console.warn("fetchLiveDashboardData: live metrics below threshold, using static catalog", {
       liveCount: liveMetrics.length,
       liveIds: liveMetrics.map((metric) => metric.id),
     });
@@ -137,6 +136,20 @@ export async function getDashboardData(): Promise<DashboardData> {
     composite: buildCompositeSnapshot(snapshots),
     fromSupabase: catalog.fromSupabase,
   };
+}
+
+// Ingestion runs once a day (see .github/workflows/market-bubble-ingest.yml), so an hour of
+// staleness is invisible to users but saves a full metric_values table scan on every request.
+const getCachedLiveDashboardData = unstable_cache(fetchLiveDashboardData, ["dashboard-data"], {
+  revalidate: 3600,
+});
+
+export async function getDashboardData(): Promise<DashboardData> {
+  try {
+    return await getCachedLiveDashboardData();
+  } catch {
+    return fallbackDashboardData();
+  }
 }
 
 export async function getMetricDataBySlug(slug: string) {
