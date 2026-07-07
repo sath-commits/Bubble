@@ -57,11 +57,11 @@ export function MetricChart({ metric, compact = false }: { metric: MetricDefinit
   const isLogScaleSupported = metric.history.every((point) => point.value > 0);
 
   return (
-    <div className="rounded-lg border border-[#e5ddd3] bg-[#f7f2eb] p-3">
+    <div className="rounded-lg border border-[#e5ddd3] bg-white p-3">
       <div className={compact ? "sr-only" : "mb-2 flex items-center justify-between gap-3"}>
         <div>
           <p className="text-[10px] uppercase tracking-wide text-[#9e9087]">Historical context</p>
-          <p className="text-xs text-[#6e5f52]">Shaded bands mark major stress windows.</p>
+          <p className="text-xs text-[#6e5f52]">Red bands mark major stress windows.</p>
         </div>
         <div className="flex items-center gap-2">
           {isLogScaleSupported ? (
@@ -106,11 +106,15 @@ export function MetricChart({ metric, compact = false }: { metric: MetricDefinit
                 key={band.label}
                 x1={band.start}
                 x2={band.end}
-                fill="#fef3c7"
-                fillOpacity={0.27}
+                fill="#ef4444"
+                fillOpacity={0.16}
+                stroke="#b91c1c"
+                strokeOpacity={0.5}
+                strokeWidth={1}
+                strokeDasharray="3 3"
               />
             ))}
-            <Line type="monotone" dataKey="value" stroke="#f97316" strokeWidth={3} dot={false} />
+            <Line type="monotone" dataKey="value" stroke="#1c1612" strokeWidth={2.5} dot={false} />
             {!compact ? (
               <ReferenceDot
                 x={toTs(latest.date)}
