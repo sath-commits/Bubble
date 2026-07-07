@@ -22,6 +22,11 @@ function buildReferenceBands(metric: MetricDefinition) {
   const firstTs = toTs(metric.history[0].date);
   const lastTs = toTs(metric.history[metric.history.length - 1].date);
   return [
+    { label: "1969-70", start: "1969-12-01", end: "1970-11-30" },
+    { label: "Oil crisis", start: "1973-11-01", end: "1975-03-31" },
+    { label: "1980", start: "1980-01-01", end: "1980-07-31" },
+    { label: "1981-82", start: "1981-07-01", end: "1982-11-30" },
+    { label: "1990-91", start: "1990-07-01", end: "1991-03-31" },
     { label: "Dot-com", start: "2000-01-01", end: "2002-01-01" },
     { label: "GFC", start: "2007-01-01", end: "2009-01-01" },
     { label: "COVID", start: "2020-02-01", end: "2020-03-31" },
