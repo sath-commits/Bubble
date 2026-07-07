@@ -1,0 +1,134 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import {
+  CartesianGrid,
+  Line,
+  LineChart,
+  ReferenceArea,
+  ReferenceDot,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import type { MetricDefinition } from "@/lib/bubble";
+
+function buildReferenceBands(metric: MetricDefinition) {
+  const firstDate = metric.history[0].date;
+  const lastDate = metric.history[metric.history.length - 1].date;
+  return [
+    { label: "Dot-com", start: "2000-01-01", end: "2002-01-01" },
+    { label: "GFC", start: "2007-01-01", end: "2009-01-01" },
+    { label: "COVID", start: "2020-02-01", end: "2020-03-31" },
+    { label: "2022 bear", start: "2022-01-01", end: "2022-10-01" },
+  ].filter((band) => band.end >= firstDate && band.start <= lastDate);
+}
+
+function formatTooltipValue(value: number, metric: MetricDefinition) {
+  const rounded = Number(value).toFixed(metric.unit === "%" ? 1 : 2);
+  if (metric.unit === "%") {
+    return `${rounded}%`;
+  }
+  if (metric.unit === "x") {
+    return `${rounded}x`;
+  }
+  if (metric.unit === "$T") {
+    return `$${rounded}T`;
+  }
+  return rounded;
+}
+
+export function MetricChart({ metric, compact = false }: { metric: MetricDefinition; compact?: boolean }) {
+  const [scaleMode, setScaleMode] = useState<"linear" | "log">("linear");
+  const [windowMode, setWindowMode] = useState<"default" | "max">("default");
+  const bands = useMemo(() => buildReferenceBands(metric), [metric]);
+  const latest = metric.history[metric.history.length - 1];
+
+  const visibleData = useMemo(() => {
+    if (compact || windowMode === "max") {
+      return metric.history;
+    }
+    return metric.history.filter((point) => point.date >= "1998-01-01");
+  }, [compact, metric.history, windowMode]);
+
+  const isLogScaleSupported = metric.history.every((point) => point.value > 0);
+
+  return (
+    <div className="rounded-lg border border-[#e5ddd3] bg-[#f7f2eb] p-3">
+      <div className={compact ? "sr-only" : "mb-2 flex items-center justify-between gap-3"}>
+        <div>
+          <p className="text-[10px] uppercase tracking-wide text-[#9e9087]">Historical context</p>
+          <p className="text-xs text-[#6e5f52]">Default view starts in 1998; shaded bands mark major stress windows.</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setWindowMode(windowMode === "default" ? "max" : "default")}
+            className="rounded border border-[#d4c9bc] bg-white px-2 py-1 text-[10px] font-medium text-[#4a3d33]"
+          >
+            {windowMode === "default" ? "Since 1998" : "Max"}
+          </button>
+          {isLogScaleSupported ? (
+            <button
+              type="button"
+              onClick={() => setScaleMode(scaleMode === "linear" ? "log" : "linear")}
+              className="rounded border border-[#d4c9bc] bg-white px-2 py-1 text-[10px] font-medium text-[#4a3d33]"
+            >
+              {scaleMode === "linear" ? "Log" : "Linear"}
+            </button>
+          ) : null}
+        </div>
+      </div>
+      <div className={compact ? "h-28" : "h-72"}>
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={visibleData}>
+            <CartesianGrid vertical={false} stroke="#f0e7da" strokeDasharray="4 4" />
+            <XAxis dataKey="date" hide={compact} tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: "#6e5f52" }} />
+            <YAxis
+              scale={isLogScaleSupported && scaleMode === "log" ? "log" : "linear"}
+              hide={compact}
+              tickLine={false}
+              axisLine={false}
+              tick={{ fontSize: 11, fill: "#6e5f52" }}
+              width={56}
+            />
+            <Tooltip
+              formatter={(value) => formatTooltipValue(Number(value), metric)}
+              labelFormatter={(label) => new Date(label).toLocaleDateString("en-US", { month: "short", year: "numeric" })}
+            />
+            {bands.map((band) => (
+              <ReferenceArea
+                key={band.label}
+                x1={band.start}
+                x2={band.end}
+                fill="#fef3c7"
+                fillOpacity={0.27}
+              />
+            ))}
+            <Line type="monotone" dataKey="value" stroke="#f97316" strokeWidth={3} dot={false} />
+            {!compact ? (
+              <ReferenceDot
+                x={latest.date}
+                y={latest.value}
+                r={5}
+                fill="#da7756"
+                stroke="white"
+                label={{ value: "Current", position: "top", fill: "#4a3d33", fontSize: 11 }}
+              />
+            ) : null}
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+      {compact ? null : (
+        <div className="mt-4 flex flex-wrap gap-2 text-xs text-[#6e5f52]">
+          {bands.map((band) => (
+            <span key={band.label} className="rounded-full border border-[#d4c9bc] bg-white px-2.5 py-1 text-[10px] uppercase tracking-wide text-[#6e5f52]">
+              {band.label}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
