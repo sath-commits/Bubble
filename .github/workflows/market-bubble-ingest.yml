@@ -5,6 +5,10 @@ on:
   schedule:
     - cron: "17 12 * * *"
 
+permissions:
+  contents: read
+  issues: write
+
 jobs:
   ingest:
     runs-on: ubuntu-latest
@@ -26,10 +30,67 @@ jobs:
         run: npm ci
 
       - name: Run ingestion
-        run: npm run ingest
+        run: |
+          set -o pipefail
+          npm run ingest 2>&1 | tee ingest-output.log
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          # Optional: free tier at https://artificialanalysis.ai/data-api. Without it, the
-          # open-vs-closed model gap metric simply stops receiving new data points.
-          ARTIFICIALANALYSIS_API_KEY: ${{ secrets.ARTIFICIALANALYSIS_API_KEY }}
+
+      # The open-vs-closed model gap metric reads a free but unofficial single-maintainer mirror
+      # (see the STALE_SOURCE comment in scripts/ingest.ts) that has no durability guarantee. If
+      # ingestion detects it's gone stale, file a GitHub issue -- deduped by label -- so it
+      # surfaces as a normal GitHub notification instead of requiring someone to check workflow
+      # logs to notice.
+      - name: Check for stale open-weight-gap source
+        if: always()
+        id: check_stale
+        working-directory: app
+        run: |
+          if grep -q "STALE_SOURCE:" ingest-output.log; then
+            echo "stale=true" >> "$GITHUB_OUTPUT"
+            grep "STALE_SOURCE:" ingest-output.log | tail -1 > stale-message.txt
+          else
+            echo "stale=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: File issue if the arena leaderboard source has gone stale
+        if: always() && steps.check_stale.outputs.stale == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const message = fs.readFileSync('app/stale-message.txt', 'utf8').trim();
+            const title = "Open vs Closed Model Intelligence Gap: arena-ai-leaderboards source is stale";
+            const { data: existing } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: "open",
+              labels: "data-source-stale",
+            });
+            if (existing.length > 0) {
+              console.log(`Issue already open (#${existing[0].number}), not filing a duplicate.`);
+              return;
+            }
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title,
+              labels: ["data-source-stale"],
+              body: [
+                "The daily Market Bubble Ingest run detected that",
+                "[oolong-tea-2026/arena-ai-leaderboards](https://github.com/oolong-tea-2026/arena-ai-leaderboards)",
+                "has not published a fresh snapshot recently:",
+                "",
+                "```",
+                message,
+                "```",
+                "",
+                "The **Open vs. Closed Model Intelligence Gap** metric has stopped receiving new data",
+                "points until this is resolved -- either the upstream mirror recovers, or it needs to",
+                "be replaced with a different source. See the latest",
+                `[Market Bubble Ingest run](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`,
+                "for details. Close this issue once it's resolved; a new one will be filed automatically",
+                "if it goes stale again.",
+              ].join("\n"),
+            });

@@ -596,19 +596,19 @@ const baseMetrics: MetricDefinition[] = [
     name: "Open vs. Closed Model Intelligence Gap",
     category: "AI Buildout",
     unit: "pts",
-    descriptionShort: "Artificial Analysis Intelligence Index gap between the top closed and top open-weight model.",
+    descriptionShort: "Arena AI (code leaderboard) Elo gap between the top closed and top open-weight model.",
     descriptionLong:
-      "Tracks the gap, in Artificial Analysis Intelligence Index points, between the best-scoring closed model and the best-scoring open-weight model. A shrinking gap means open-weight releases are closing in on frontier labs' best closed models faster than those labs can extend their lead.",
+      "Tracks the Elo gap, on the Arena AI code leaderboard, between the best-scoring proprietary model and the best-scoring open-weight model. A shrinking gap means open-weight releases are closing in on frontier labs' best closed models faster than those labs can extend their lead.",
     whyItMatters:
       "The premium valuations placed on frontier AI labs and the hyperscalers bankrolling them lean on the assumption that closed-model capability stays meaningfully ahead of free alternatives. A fast-closing gap chips away at that moat narrative even though it says nothing about near-term revenue.",
     caveats:
-      "This is a watch item, not part of the composite score. Live updates require a free Artificial Analysis API key (ARTIFICIALANALYSIS_API_KEY) configured for the ingestion job -- without it, this metric stops receiving new data points rather than falling back to invented numbers. The single seed value below is one real, dated reading (GLM 5.2 at 51 vs. Claude Fable 5 at ~56 on Artificial Analysis's Intelligence Index v4.1, mid-2026); it is not a trend line until the live feed accumulates more points.",
-    sourceName: "Artificial Analysis Intelligence Index",
-    sourceUrl: "https://artificialanalysis.ai/",
-    updateFrequency: "Daily (automated, requires API key)",
+      "This is a watch item, not part of the composite score. Artificial Analysis's own model-comparison API would need a $400/mo Pro plan for this data, so this instead reads github.com/oolong-tea-2026/arena-ai-leaderboards, a free, keyless, daily-scraped mirror of the Arena AI leaderboards that already tags each model's license (open vs. proprietary). That mirror is a single-maintainer side project, not Arena's own feed, and has no durability guarantee -- a prior similar mirror silently stopped updating for over a year with no visible warning. Ingestion checks the mirror's own \"latest snapshot\" date on every run and refuses to use data more than 4 days old; if that trips, the metric simply stops updating and a GitHub issue is filed automatically on the repo so staleness gets noticed instead of silently going unnoticed.",
+    sourceName: "Arena AI code leaderboard (via arena-ai-leaderboards mirror)",
+    sourceUrl: "https://github.com/oolong-tea-2026/arena-ai-leaderboards",
+    updateFrequency: "Daily (automated, keyless)",
     orientationHigherIsFrothier: false,
     includedInComposite: false,
-    history: [{ date: "2026-07-01", value: 5 }],
+    history: [{ date: "2026-07-20", value: 92 }],
   },
   {
     id: "hyperscaler-capex-divergence",

@@ -197,55 +197,65 @@ async function fetchCryptoSpeculation() {
   return [{ date: new Date().toISOString().slice(0, 10), value: totalMarketCap / 1_000_000_000_000 }];
 }
 
-// Artificial Analysis's free-tier Data API (https://artificialanalysis.ai/data-api) is the only
-// free, live source found for cross-model benchmark comparisons -- it requires a personal API
-// key (sign up at artificialanalysis.ai, no cost for the free tier, 10 requests/day). If
-// ARTIFICIALANALYSIS_API_KEY isn't configured, this source is skipped entirely rather than
-// falling back to invented numbers, per the site's data-integrity rule.
+// Artificial Analysis's bulk models-list endpoint requires a paid Pro plan ($400/mo -- confirmed
+// via a live 403 with body {"error":"Language models list requires a Pro subscription"}), so it's
+// not usable here. This instead reads github.com/oolong-tea-2026/arena-ai-leaderboards, a free,
+// keyless, daily-scraped mirror of the Arena AI (formerly LMSYS Chatbot Arena) "code" leaderboard,
+// which already tags each model with an explicit license: "open" | "proprietary" -- no separate
+// open-vs-closed classification list to build or maintain. Unlike SEC/FRED/CoinGecko, this is an
+// unofficial single-maintainer project with no durability guarantee, so its freshness is checked
+// explicitly below; the STALE_SOURCE prefix on the thrown error lets the workflow detect this
+// specific failure mode and open a GitHub issue instead of just logging a quiet failure.
+const ARENA_LEADERBOARDS_REPO_RAW = "https://raw.githubusercontent.com/oolong-tea-2026/arena-ai-leaderboards/main";
+const ARENA_STALE_THRESHOLD_DAYS = 4;
+
 async function fetchOpenWeightGap(): Promise<HistoryPoint[]> {
-  const apiKey = process.env.ARTIFICIALANALYSIS_API_KEY;
-  if (!apiKey) {
-    throw new Error("ARTIFICIALANALYSIS_API_KEY is not configured; skipping open-weight gap update.");
+  const latestResponse = await fetch(`${ARENA_LEADERBOARDS_REPO_RAW}/data/latest.json`);
+  if (!latestResponse.ok) {
+    throw new Error(`arena-ai-leaderboards latest.json failed with ${latestResponse.status}`);
   }
-  const response = await fetch("https://artificialanalysis.ai/api/v2/language/models", {
-    headers: { "x-api-key": apiKey },
-  });
-  if (!response.ok) {
-    const body = await response.text().catch(() => "<unreadable body>");
-    throw new Error(`Artificial Analysis API failed with ${response.status}: ${body.slice(0, 500)}`);
+  const latest = (await latestResponse.json()) as { date?: string; path?: string };
+  if (!latest.date || !latest.path) {
+    throw new Error("arena-ai-leaderboards latest.json is missing date/path.");
   }
-  const payload = (await response.json()) as {
-    data?: Array<{
-      intelligence_index?: number | null;
-      evaluations?: { artificial_analysis_intelligence_index?: number | null } | null;
-      license?: string | null;
-      open_weights?: boolean | null;
-    }>;
+
+  const ageDays = (Date.now() - new Date(latest.date).getTime()) / 86_400_000;
+  if (ageDays > ARENA_STALE_THRESHOLD_DAYS) {
+    throw new Error(
+      `STALE_SOURCE: arena-ai-leaderboards latest snapshot is dated ${latest.date} (${ageDays.toFixed(1)} days old, ` +
+        `threshold ${ARENA_STALE_THRESHOLD_DAYS}) -- the upstream scraper may have gone dark.`,
+    );
+  }
+
+  const codeResponse = await fetch(`${ARENA_LEADERBOARDS_REPO_RAW}/data/${latest.path}/code.json`);
+  if (!codeResponse.ok) {
+    throw new Error(`arena-ai-leaderboards code.json failed with ${codeResponse.status}`);
+  }
+  const payload = (await codeResponse.json()) as {
+    models?: Array<{ model?: string; license?: string; score?: number }>;
   };
-  const models = payload.data ?? [];
+  const models = payload.models ?? [];
   if (!models.length) {
-    throw new Error("Artificial Analysis API returned no models.");
+    throw new Error("arena-ai-leaderboards code.json returned no models.");
   }
 
   let topOpenScore = -Infinity;
   let topClosedScore = -Infinity;
   for (const model of models) {
-    const score = model.intelligence_index ?? model.evaluations?.artificial_analysis_intelligence_index ?? null;
-    if (score === null || score === undefined) {
+    if (typeof model.score !== "number") {
       continue;
     }
-    const isOpenWeight = model.open_weights === true || /open/i.test(model.license ?? "");
-    if (isOpenWeight) {
-      topOpenScore = Math.max(topOpenScore, score);
-    } else {
-      topClosedScore = Math.max(topClosedScore, score);
+    if (model.license === "open") {
+      topOpenScore = Math.max(topOpenScore, model.score);
+    } else if (model.license === "proprietary") {
+      topClosedScore = Math.max(topClosedScore, model.score);
     }
   }
   if (!Number.isFinite(topOpenScore) || !Number.isFinite(topClosedScore)) {
-    throw new Error("Could not identify both an open-weight and a closed top model in the Artificial Analysis response.");
+    throw new Error("Could not find both an 'open' and a 'proprietary' licensed model in arena-ai-leaderboards code.json.");
   }
 
-  return [{ date: new Date().toISOString().slice(0, 10), value: Number((topClosedScore - topOpenScore).toFixed(1)) }];
+  return [{ date: latest.date, value: Number((topClosedScore - topOpenScore).toFixed(1)) }];
 }
 
 type XbrlFact = { start?: string; end: string; val: number; form: string; filed: string };
@@ -576,11 +586,11 @@ async function main() {
 
   try {
     const points = await fetchOpenWeightGap();
-    await upsertValues(supabase, "open-weight-gap", points, { source: "Artificial Analysis API" });
-    sourceResults.push({ source: "artificial-analysis-open-weight-gap", ok: true, count: points.length });
+    await upsertValues(supabase, "open-weight-gap", points, { source: "arena-ai-leaderboards", endpoint: "data/latest/code.json" });
+    sourceResults.push({ source: "arena-ai-leaderboards-open-weight-gap", ok: true, count: points.length });
   } catch (error) {
     sourceResults.push({
-      source: "artificial-analysis-open-weight-gap",
+      source: "arena-ai-leaderboards-open-weight-gap",
       ok: false,
       error: error instanceof Error ? error.message : String(error),
     });
