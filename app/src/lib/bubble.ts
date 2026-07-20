@@ -590,12 +590,104 @@ const baseMetrics: MetricDefinition[] = [
       { date: "2026-01-01", value: 0.3 },
     ],
   },
+  {
+    id: "open-weight-convergence",
+    slug: "open-weight-model-convergence",
+    name: "Open-Weight Model Convergence Gap",
+    category: "AI Buildout",
+    unit: "mo",
+    descriptionShort: "How many months the best open-weight model lags the top closed frontier model.",
+    descriptionLong:
+      "Tracks the estimated capability lag, in months, between the best available open-weight language model and the best closed frontier model, based on aggregate benchmark trackers such as Epoch AI's ECI gap and the Artificial Analysis Intelligence Index. A shrinking gap means open-weight releases are closing in on frontier labs' best closed models faster than those labs can extend their lead.",
+    whyItMatters:
+      "The premium valuations placed on frontier AI labs and the hyperscalers bankrolling them lean on the assumption that closed-model capability stays meaningfully ahead of free alternatives. A fast-closing gap chips away at that moat narrative even though it says nothing about near-term revenue.",
+    caveats:
+      "This is a watch item, not part of the composite score. There is no single authoritative feed for this gap -- it is reconstructed from public benchmark leaderboard commentary (Epoch AI, Artificial Analysis, LMArena) and is necessarily approximate. Benchmark composites also don't capture reliability, tooling, or enterprise-support gaps that matter in practice.",
+    sourceName: "Epoch AI / Artificial Analysis (reconstructed)",
+    sourceUrl: "https://epoch.ai/data-insights/open-closed-eci-gap",
+    updateFrequency: "Quarterly (manual)",
+    orientationHigherIsFrothier: false,
+    includedInComposite: false,
+    history: [
+      { date: "2023-06-01", value: 14 },
+      { date: "2023-12-01", value: 12 },
+      { date: "2024-06-01", value: 10 },
+      { date: "2024-09-01", value: 8 },
+      { date: "2025-01-01", value: 7 },
+      { date: "2025-06-01", value: 6 },
+      { date: "2025-09-01", value: 5 },
+      { date: "2026-01-01", value: 4 },
+      { date: "2026-07-01", value: 4 },
+    ],
+  },
+  {
+    id: "ai-infra-credit-spread",
+    slug: "ai-infrastructure-credit-spread",
+    name: "AI Infrastructure Credit Spread",
+    category: "AI Buildout",
+    unit: "bp",
+    descriptionShort: "5-year CDS spread on the hyperscalers financing the AI buildout.",
+    descriptionLong:
+      "Tracks 5-year credit default swap spreads on the large-cap hyperscalers (Microsoft, Amazon, Google, Oracle) issuing record amounts of debt and off-balance-sheet financing to fund AI data centers. Widening spreads show credit markets pricing in more risk from that debt load; tight spreads show the market treating hyperscaler AI debt as safe as it always has.",
+    whyItMatters:
+      "Data-center buildouts are increasingly financed with bonds, private credit, and SPVs rather than cash flow, including tens of billions of dollars in single issuances from Oracle and Meta in 2025-2026. A market that keeps spreads tight despite that leverage is pricing very little risk into the AI capex boom; widening spreads are the credit market's way of saying the buildout is no longer a free lunch.",
+    caveats:
+      "CDS spreads move on many things besides AI capex (rates, general credit conditions, issuer-specific news), so this is a noisy proxy, not a pure AI-debt signal. Pre-2023 history is approximated from typical large-cap investment-grade tech spreads since AI-specific data-center debt issuance is a recent phenomenon.",
+    sourceName: "Bloomberg / CMA CDS pricing (reconstructed)",
+    sourceUrl: "https://www.forbes.com/sites/jasonkirsch/2026/06/02/the-ai-capex-to-revenue-gap-is-widening---and-markets-are-starting-to-notice/",
+    updateFrequency: "Daily (manual)",
+    orientationHigherIsFrothier: false,
+    includedInComposite: true,
+    history: [
+      { date: "2023-01-01", value: 18 },
+      { date: "2023-07-01", value: 17 },
+      { date: "2024-01-01", value: 16 },
+      { date: "2024-07-01", value: 18 },
+      { date: "2025-01-01", value: 30 },
+      { date: "2025-04-01", value: 38 },
+      { date: "2025-07-01", value: 45 },
+      { date: "2025-10-01", value: 55 },
+      { date: "2026-01-01", value: 65 },
+      { date: "2026-06-01", value: 75 },
+    ],
+  },
+  {
+    id: "hyperscaler-capex-divergence",
+    slug: "hyperscaler-capex-divergence",
+    name: "Hyperscaler Capex-to-Revenue Divergence",
+    category: "AI Buildout",
+    unit: "pp",
+    descriptionShort: "How much faster combined hyperscaler capex is growing than their revenue.",
+    descriptionLong:
+      "Compares the year-over-year growth rate of combined capital expenditures at the largest hyperscalers (Microsoft, Amazon, Google, Meta) with the year-over-year growth rate of their combined revenue. A rising gap means AI infrastructure spending is compounding faster than the sales it is meant to support.",
+    whyItMatters:
+      "Combined capex has grown roughly 60-80% a year for three straight years while combined revenue has grown in the mid-teens, opening an annual gap estimated near $600B between AI infrastructure spend and AI-linked revenue in 2026. That gap is the clearest numeric expression of the 'spending now, monetizing later' bet underpinning the AI trade -- the wider it gets, the more the trade depends on future demand showing up on schedule.",
+    caveats:
+      "Capex and revenue growth rates are reconstructed from company guidance and analyst aggregates reported across 2024-2026 (Epoch AI, CreditSights, sell-side estimates), not a single clean data series, and the four companies are blended rather than tracked individually. Revenue growth here is total company revenue, not AI-specific revenue, since AI-only revenue is not separately disclosed.",
+    sourceName: "Company filings / analyst aggregates (reconstructed)",
+    sourceUrl: "https://introl.com/blog/hyperscaler-capex-600b-2026-ai-infrastructure-debt-january-2026",
+    updateFrequency: "Quarterly (manual)",
+    orientationHigherIsFrothier: true,
+    includedInComposite: true,
+    history: [
+      { date: "2019-01-01", value: 4 },
+      { date: "2021-01-01", value: 9 },
+      { date: "2023-01-01", value: 14 },
+      { date: "2024-01-01", value: 33 },
+      { date: "2024-07-01", value: 38 },
+      { date: "2025-01-01", value: 45 },
+      { date: "2025-07-01", value: 52 },
+      { date: "2026-01-01", value: 58 },
+      { date: "2026-07-01", value: 60 },
+    ],
+  },
 ];
 
 export const compositeCategoryWeights: Record<string, number> = {
   Valuation: 1,
   "Credit & Volatility": 1,
   "Sentiment & Leverage": 1,
+  "AI Buildout": 1,
 };
 
 export function resolveMetricCatalog(liveMetrics: MetricDefinition[], fallbackMetrics: MetricDefinition[]) {
@@ -768,6 +860,15 @@ export function formatValue(value: number, metric: MetricDefinition) {
   }
   if (metric.unit === "$T") {
     return `$${rounded}T`;
+  }
+  if (metric.unit === "bp") {
+    return `${Math.round(value)}bp`;
+  }
+  if (metric.unit === "pp") {
+    return `${rounded}pp`;
+  }
+  if (metric.unit === "mo") {
+    return `${rounded} mo`;
   }
   return `${rounded}`;
 }
