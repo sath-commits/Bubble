@@ -256,9 +256,10 @@ const hyperscalerCiks = [
   "0001326801", // Meta Platforms
 ];
 
-// SEC's fair-access policy requires a descriptive User-Agent identifying the requester; it does
-// not require an API key. See https://www.sec.gov/os/webmaster-faq#developers.
-const SEC_USER_AGENT = "BubbleTrackerIngest/1.0 (+https://github.com/sath-commits/Bubble)";
+// SEC's fair-access policy requires a User-Agent shaped like "Name email@domain" -- a URL-only
+// identifier (what this used to be) gets 403'd. It does not require an API key.
+// See https://www.sec.gov/os/webmaster-faq#developers.
+const SEC_USER_AGENT = "Built This Weekend beguine-tweaks9z@icloud.com";
 
 async function fetchXbrlConcept(cik: string, tag: string): Promise<XbrlFact[] | null> {
   const response = await fetch(`https://data.sec.gov/api/xbrl/companyconcept/CIK${cik}/us-gaap/${tag}.json`, {
