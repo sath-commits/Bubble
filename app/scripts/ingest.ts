@@ -197,6 +197,191 @@ async function fetchCryptoSpeculation() {
   return [{ date: new Date().toISOString().slice(0, 10), value: totalMarketCap / 1_000_000_000_000 }];
 }
 
+// Artificial Analysis's bulk models-list endpoint requires a paid Pro plan ($400/mo -- confirmed
+// via a live 403 with body {"error":"Language models list requires a Pro subscription"}), so it's
+// not usable here. This instead reads github.com/oolong-tea-2026/arena-ai-leaderboards, a free,
+// keyless, daily-scraped mirror of the Arena AI (formerly LMSYS Chatbot Arena) "code" leaderboard,
+// which already tags each model with an explicit license: "open" | "proprietary" -- no separate
+// open-vs-closed classification list to build or maintain. Unlike SEC/FRED/CoinGecko, this is an
+// unofficial single-maintainer project with no durability guarantee, so its freshness is checked
+// explicitly below; the STALE_SOURCE prefix on the thrown error lets the workflow detect this
+// specific failure mode and open a GitHub issue instead of just logging a quiet failure.
+const ARENA_LEADERBOARDS_REPO_RAW = "https://raw.githubusercontent.com/oolong-tea-2026/arena-ai-leaderboards/main";
+const ARENA_STALE_THRESHOLD_DAYS = 4;
+
+async function fetchOpenWeightGap(): Promise<HistoryPoint[]> {
+  const latestResponse = await fetch(`${ARENA_LEADERBOARDS_REPO_RAW}/data/latest.json`);
+  if (!latestResponse.ok) {
+    throw new Error(`arena-ai-leaderboards latest.json failed with ${latestResponse.status}`);
+  }
+  const latest = (await latestResponse.json()) as { date?: string; path?: string };
+  if (!latest.date || !latest.path) {
+    throw new Error("arena-ai-leaderboards latest.json is missing date/path.");
+  }
+
+  const ageDays = (Date.now() - new Date(latest.date).getTime()) / 86_400_000;
+  if (ageDays > ARENA_STALE_THRESHOLD_DAYS) {
+    throw new Error(
+      `STALE_SOURCE: arena-ai-leaderboards latest snapshot is dated ${latest.date} (${ageDays.toFixed(1)} days old, ` +
+        `threshold ${ARENA_STALE_THRESHOLD_DAYS}) -- the upstream scraper may have gone dark.`,
+    );
+  }
+
+  const codeResponse = await fetch(`${ARENA_LEADERBOARDS_REPO_RAW}/data/${latest.path}/code.json`);
+  if (!codeResponse.ok) {
+    throw new Error(`arena-ai-leaderboards code.json failed with ${codeResponse.status}`);
+  }
+  const payload = (await codeResponse.json()) as {
+    models?: Array<{ model?: string; license?: string; score?: number }>;
+  };
+  const models = payload.models ?? [];
+  if (!models.length) {
+    throw new Error("arena-ai-leaderboards code.json returned no models.");
+  }
+
+  let topOpenScore = -Infinity;
+  let topClosedScore = -Infinity;
+  for (const model of models) {
+    if (typeof model.score !== "number") {
+      continue;
+    }
+    if (model.license === "open") {
+      topOpenScore = Math.max(topOpenScore, model.score);
+    } else if (model.license === "proprietary") {
+      topClosedScore = Math.max(topClosedScore, model.score);
+    }
+  }
+  if (!Number.isFinite(topOpenScore) || !Number.isFinite(topClosedScore)) {
+    throw new Error("Could not find both an 'open' and a 'proprietary' licensed model in arena-ai-leaderboards code.json.");
+  }
+
+  return [{ date: latest.date, value: Number((topClosedScore - topOpenScore).toFixed(1)) }];
+}
+
+type XbrlFact = { start?: string; end: string; val: number; form: string; filed: string };
+
+const hyperscalerCiks = [
+  "0000789019", // Microsoft
+  "0001018724", // Amazon
+  "0001652044", // Alphabet
+  "0001326801", // Meta Platforms
+];
+
+// SEC's fair-access policy requires a User-Agent shaped like "Name email@domain" -- a URL-only
+// identifier (what this used to be) gets 403'd. It does not require an API key.
+// See https://www.sec.gov/os/webmaster-faq#developers.
+const SEC_USER_AGENT = "Built This Weekend beguine-tweaks9z@icloud.com";
+
+async function fetchXbrlConcept(cik: string, tag: string): Promise<XbrlFact[] | null> {
+  const response = await fetch(`https://data.sec.gov/api/xbrl/companyconcept/CIK${cik}/us-gaap/${tag}.json`, {
+    headers: { "User-Agent": SEC_USER_AGENT, Accept: "application/json" },
+  });
+  if (response.status === 404) {
+    return null;
+  }
+  if (!response.ok) {
+    throw new Error(`SEC companyconcept ${cik}/${tag} failed with ${response.status}`);
+  }
+  const payload = (await response.json()) as { units?: { USD?: XbrlFact[] } };
+  return payload.units?.USD ?? null;
+}
+
+// Large filers have used different XBRL tags for the same line item over the years (e.g. ASC 606
+// adoption changed the standard revenue tag partway through a company's history), so every tag is
+// fetched and merged rather than stopping at the first one with any data -- a company that only
+// has 3 years under the modern tag would otherwise silently lose its older history.
+async function fetchXbrlConceptWithFallback(cik: string, tags: string[]): Promise<XbrlFact[]> {
+  const results = await Promise.all(tags.map((tag) => fetchXbrlConcept(cik, tag)));
+  const merged = results.flatMap((facts) => facts ?? []);
+  if (!merged.length) {
+    throw new Error(`No usable XBRL facts for CIK ${cik} among tags: ${tags.join(", ")}`);
+  }
+  return merged;
+}
+
+// Reduces a raw XBRL fact array to one value per full fiscal year (10-K filings with a
+// ~365-day duration), keyed by the calendar year of the period end date, keeping the most
+// recently filed figure when a period was restated.
+function annualFactsByCalendarYear(facts: XbrlFact[]): Map<number, number> {
+  const byPeriodEnd = new Map<string, XbrlFact>();
+  for (const fact of facts) {
+    if (fact.form !== "10-K" || !fact.start) {
+      continue;
+    }
+    const durationDays = (new Date(fact.end).getTime() - new Date(fact.start).getTime()) / 86_400_000;
+    if (durationDays < 350 || durationDays > 380) {
+      continue;
+    }
+    const existing = byPeriodEnd.get(fact.end);
+    if (!existing || fact.filed > existing.filed) {
+      byPeriodEnd.set(fact.end, fact);
+    }
+  }
+  const byYear = new Map<number, number>();
+  for (const fact of byPeriodEnd.values()) {
+    byYear.set(new Date(fact.end).getUTCFullYear(), fact.val);
+  }
+  return byYear;
+}
+
+const revenueXbrlTags = ["RevenueFromContractWithCustomerExcludingAssessedTax", "Revenues"];
+const capexXbrlTags = ["PaymentsToAcquirePropertyPlantAndEquipment", "PaymentsToAcquireProductiveAssets"];
+
+// Microsoft, Amazon, Alphabet, and Meta don't share a fiscal year end (Microsoft's is June 30;
+// the other three are calendar years), so combining "by fiscal year" would misalign them. This
+// buckets each company's annual figure by the calendar year its fiscal year ends in instead --
+// an approximation that's disclosed in the metric's caveats.
+async function fetchHyperscalerCapexDivergence(): Promise<HistoryPoint[]> {
+  const revenueByCompany = await Promise.all(
+    hyperscalerCiks.map((cik) => fetchXbrlConceptWithFallback(cik, revenueXbrlTags).then(annualFactsByCalendarYear)),
+  );
+  const capexByCompany = await Promise.all(
+    hyperscalerCiks.map((cik) => fetchXbrlConceptWithFallback(cik, capexXbrlTags).then(annualFactsByCalendarYear)),
+  );
+
+  const years = new Set<number>();
+  for (const byYear of [...revenueByCompany, ...capexByCompany]) {
+    for (const year of byYear.keys()) {
+      years.add(year);
+    }
+  }
+
+  const combinedRevenue = new Map<number, number>();
+  const combinedCapex = new Map<number, number>();
+  for (const year of years) {
+    if (revenueByCompany.every((byYear) => byYear.has(year))) {
+      combinedRevenue.set(year, revenueByCompany.reduce((sum, byYear) => sum + (byYear.get(year) ?? 0), 0));
+    }
+    if (capexByCompany.every((byYear) => byYear.has(year))) {
+      combinedCapex.set(year, capexByCompany.reduce((sum, byYear) => sum + (byYear.get(year) ?? 0), 0));
+    }
+  }
+
+  const points: HistoryPoint[] = [];
+  for (const year of [...years].sort((a, b) => a - b)) {
+    const revenue = combinedRevenue.get(year);
+    const revenuePrior = combinedRevenue.get(year - 1);
+    const capex = combinedCapex.get(year);
+    const capexPrior = combinedCapex.get(year - 1);
+    if (!revenue || !revenuePrior || !capex || !capexPrior) {
+      continue;
+    }
+    const revenueGrowthPct = ((revenue - revenuePrior) / revenuePrior) * 100;
+    const capexGrowthPct = ((capex - capexPrior) / capexPrior) * 100;
+    points.push({ date: `${year}-12-31`, value: Number((capexGrowthPct - revenueGrowthPct).toFixed(1)) });
+  }
+  if (!points.length) {
+    const summarize = (byCompany: Map<number, number>[]) =>
+      hyperscalerCiks.map((cik, i) => ({ cik, years: [...byCompany[i].keys()].sort() }));
+    throw new Error(
+      "Could not compute any complete-year hyperscaler capex/revenue divergence points. " +
+        `revenue years found: ${JSON.stringify(summarize(revenueByCompany))}; ` +
+        `capex years found: ${JSON.stringify(summarize(capexByCompany))}`,
+    );
+  }
+  return points;
+}
+
 async function upsertValues(
   supabase: SupabaseClient<Database>,
   metricId: string,
@@ -381,6 +566,34 @@ async function main() {
     sourceResults.push({ source: "coingecko-global", ok: true, count: points.length });
   } catch (error) {
     sourceResults.push({ source: "coingecko-global", ok: false, error: error instanceof Error ? error.message : String(error) });
+  }
+
+  try {
+    const points = await fetchHyperscalerCapexDivergence();
+    await upsertValues(supabase, "hyperscaler-capex-divergence", points, {
+      source: "SEC EDGAR XBRL",
+      ciks: hyperscalerCiks,
+      derived: true,
+    });
+    sourceResults.push({ source: "sec-edgar-hyperscaler-capex-divergence", ok: true, count: points.length });
+  } catch (error) {
+    sourceResults.push({
+      source: "sec-edgar-hyperscaler-capex-divergence",
+      ok: false,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+
+  try {
+    const points = await fetchOpenWeightGap();
+    await upsertValues(supabase, "open-weight-gap", points, { source: "arena-ai-leaderboards", endpoint: "data/latest/code.json" });
+    sourceResults.push({ source: "arena-ai-leaderboards-open-weight-gap", ok: true, count: points.length });
+  } catch (error) {
+    sourceResults.push({
+      source: "arena-ai-leaderboards-open-weight-gap",
+      ok: false,
+      error: error instanceof Error ? error.message : String(error),
+    });
   }
 
   await recomputeCompositeAndAlerts(supabase);

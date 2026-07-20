@@ -47,6 +47,12 @@ function formatTooltipValue(value: number, metric: MetricDefinition) {
   if (metric.unit === "$T") {
     return `$${rounded}T`;
   }
+  if (metric.unit === "pp") {
+    return `${rounded}pp`;
+  }
+  if (metric.unit === "pts") {
+    return `${rounded}pts`;
+  }
   return rounded;
 }
 

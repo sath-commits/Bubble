@@ -590,12 +590,53 @@ const baseMetrics: MetricDefinition[] = [
       { date: "2026-01-01", value: 0.3 },
     ],
   },
+  {
+    id: "open-weight-gap",
+    slug: "open-vs-closed-model-gap",
+    name: "Open vs. Closed Model Intelligence Gap",
+    category: "AI Buildout",
+    unit: "pts",
+    descriptionShort: "Arena AI (code leaderboard) Elo gap between the top closed and top open-weight model.",
+    descriptionLong:
+      "Tracks the Elo gap, on the Arena AI code leaderboard, between the best-scoring proprietary model and the best-scoring open-weight model. A shrinking gap means open-weight releases are closing in on frontier labs' best closed models faster than those labs can extend their lead.",
+    whyItMatters:
+      "The premium valuations placed on frontier AI labs and the hyperscalers bankrolling them lean on the assumption that closed-model capability stays meaningfully ahead of free alternatives. A fast-closing gap chips away at that moat narrative even though it says nothing about near-term revenue.",
+    caveats:
+      "This is a watch item, not part of the composite score. Artificial Analysis's own model-comparison API would need a $400/mo Pro plan for this data, so this instead reads github.com/oolong-tea-2026/arena-ai-leaderboards, a free, keyless, daily-scraped mirror of the Arena AI leaderboards that already tags each model's license (open vs. proprietary). That mirror is a single-maintainer side project, not Arena's own feed, and has no durability guarantee -- a prior similar mirror silently stopped updating for over a year with no visible warning. Ingestion checks the mirror's own \"latest snapshot\" date on every run and refuses to use data more than 4 days old; if that trips, the metric simply stops updating and a GitHub issue is filed automatically on the repo so staleness gets noticed instead of silently going unnoticed.",
+    sourceName: "Arena AI code leaderboard (via arena-ai-leaderboards mirror)",
+    sourceUrl: "https://github.com/oolong-tea-2026/arena-ai-leaderboards",
+    updateFrequency: "Daily (automated, keyless)",
+    orientationHigherIsFrothier: false,
+    includedInComposite: false,
+    history: [{ date: "2026-07-20", value: 92 }],
+  },
+  {
+    id: "hyperscaler-capex-divergence",
+    slug: "hyperscaler-capex-divergence",
+    name: "Hyperscaler Capex-to-Revenue Divergence",
+    category: "AI Buildout",
+    unit: "pp",
+    descriptionShort: "How much faster combined hyperscaler capex is growing than their revenue.",
+    descriptionLong:
+      "Compares the year-over-year growth rate of combined capital expenditures at Microsoft, Amazon, Alphabet, and Meta with the year-over-year growth rate of their combined revenue, computed directly from each company's SEC XBRL filings. A rising gap means AI infrastructure spending is compounding faster than the sales it is meant to support.",
+    whyItMatters:
+      "Capex at these four companies has been growing far faster than revenue through the AI buildout. That gap is the clearest numeric expression of the 'spending now, monetizing later' bet underpinning the AI trade -- the wider it gets, the more the trade depends on future demand showing up on schedule.",
+    caveats:
+      "Live updates are computed from each company's PaymentsToAcquirePropertyPlantAndEquipment and revenue XBRL facts via SEC EDGAR's free companyconcept API (no key required), matched by calendar year of fiscal-year-end and only combined when all four companies report both the current and prior year. The single seed value below is one real, precisely computed point (FY2024 to FY2025 combined revenue, from each company's own 10-K/earnings release, +14.7%, versus Epoch AI's reported 2024-to-2025 combined hyperscaler capex growth of +81.4%; note that Epoch AI's capex figure includes Oracle alongside these four, a scope mismatch this one bootstrap point inherits -- the live SEC-only feed replaces it with an apples-to-apples figure once ingestion runs). The four companies have different fiscal year ends (Microsoft's is June 30), so calendar-year bucketing blends slightly offset fiscal periods. Revenue growth is total company revenue, not AI-specific revenue, since AI-only revenue is not separately disclosed.",
+    sourceName: "SEC EDGAR XBRL (company filings)",
+    sourceUrl: "https://data.sec.gov/api/xbrl/companyconcept/CIK0000789019/us-gaap/Revenues.json",
+    updateFrequency: "Annual (automated, keyless)",
+    orientationHigherIsFrothier: true,
+    includedInComposite: true,
+    history: [{ date: "2025-12-31", value: 66.8 }],
+  },
 ];
 
 export const compositeCategoryWeights: Record<string, number> = {
   Valuation: 1,
   "Credit & Volatility": 1,
   "Sentiment & Leverage": 1,
+  "AI Buildout": 1,
 };
 
 export function resolveMetricCatalog(liveMetrics: MetricDefinition[], fallbackMetrics: MetricDefinition[]) {
@@ -768,6 +809,12 @@ export function formatValue(value: number, metric: MetricDefinition) {
   }
   if (metric.unit === "$T") {
     return `$${rounded}T`;
+  }
+  if (metric.unit === "pp") {
+    return `${rounded}pp`;
+  }
+  if (metric.unit === "pts") {
+    return `${rounded}pts`;
   }
   return `${rounded}`;
 }
