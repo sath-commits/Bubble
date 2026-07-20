@@ -30,3 +30,6 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          # Optional: free tier at https://artificialanalysis.ai/data-api. Without it, the
+          # open-vs-closed model gap metric simply stops receiving new data points.
+          ARTIFICIALANALYSIS_API_KEY: ${{ secrets.ARTIFICIALANALYSIS_API_KEY }}

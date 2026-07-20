@@ -197,6 +197,173 @@ async function fetchCryptoSpeculation() {
   return [{ date: new Date().toISOString().slice(0, 10), value: totalMarketCap / 1_000_000_000_000 }];
 }
 
+// Artificial Analysis's free-tier Data API (https://artificialanalysis.ai/data-api) is the only
+// free, live source found for cross-model benchmark comparisons -- it requires a personal API
+// key (sign up at artificialanalysis.ai, no cost for the free tier, 10 requests/day). If
+// ARTIFICIALANALYSIS_API_KEY isn't configured, this source is skipped entirely rather than
+// falling back to invented numbers, per the site's data-integrity rule.
+async function fetchOpenWeightGap(): Promise<HistoryPoint[]> {
+  const apiKey = process.env.ARTIFICIALANALYSIS_API_KEY;
+  if (!apiKey) {
+    throw new Error("ARTIFICIALANALYSIS_API_KEY is not configured; skipping open-weight gap update.");
+  }
+  const response = await fetch("https://artificialanalysis.ai/api/v2/language/models", {
+    headers: { "x-api-key": apiKey },
+  });
+  if (!response.ok) {
+    throw new Error(`Artificial Analysis API failed with ${response.status}`);
+  }
+  const payload = (await response.json()) as {
+    data?: Array<{
+      intelligence_index?: number | null;
+      evaluations?: { artificial_analysis_intelligence_index?: number | null } | null;
+      license?: string | null;
+      open_weights?: boolean | null;
+    }>;
+  };
+  const models = payload.data ?? [];
+  if (!models.length) {
+    throw new Error("Artificial Analysis API returned no models.");
+  }
+
+  let topOpenScore = -Infinity;
+  let topClosedScore = -Infinity;
+  for (const model of models) {
+    const score = model.intelligence_index ?? model.evaluations?.artificial_analysis_intelligence_index ?? null;
+    if (score === null || score === undefined) {
+      continue;
+    }
+    const isOpenWeight = model.open_weights === true || /open/i.test(model.license ?? "");
+    if (isOpenWeight) {
+      topOpenScore = Math.max(topOpenScore, score);
+    } else {
+      topClosedScore = Math.max(topClosedScore, score);
+    }
+  }
+  if (!Number.isFinite(topOpenScore) || !Number.isFinite(topClosedScore)) {
+    throw new Error("Could not identify both an open-weight and a closed top model in the Artificial Analysis response.");
+  }
+
+  return [{ date: new Date().toISOString().slice(0, 10), value: Number((topClosedScore - topOpenScore).toFixed(1)) }];
+}
+
+type XbrlFact = { start?: string; end: string; val: number; form: string; filed: string };
+
+const hyperscalerCiks = [
+  "0000789019", // Microsoft
+  "0001018724", // Amazon
+  "0001652044", // Alphabet
+  "0001326801", // Meta Platforms
+];
+
+// SEC's fair-access policy requires a descriptive User-Agent identifying the requester; it does
+// not require an API key. See https://www.sec.gov/os/webmaster-faq#developers.
+const SEC_USER_AGENT = "BubbleTrackerIngest/1.0 (+https://github.com/sath-commits/Bubble)";
+
+async function fetchXbrlConcept(cik: string, tag: string): Promise<XbrlFact[] | null> {
+  const response = await fetch(`https://data.sec.gov/api/xbrl/companyconcept/CIK${cik}/us-gaap/${tag}.json`, {
+    headers: { "User-Agent": SEC_USER_AGENT, Accept: "application/json" },
+  });
+  if (response.status === 404) {
+    return null;
+  }
+  if (!response.ok) {
+    throw new Error(`SEC companyconcept ${cik}/${tag} failed with ${response.status}`);
+  }
+  const payload = (await response.json()) as { units?: { USD?: XbrlFact[] } };
+  return payload.units?.USD ?? null;
+}
+
+// Large filers have used different XBRL tags for the same line item over the years (e.g. ASC 606
+// adoption changed the standard revenue tag), so each concept is tried in priority order and the
+// first tag that actually has data wins.
+async function fetchXbrlConceptWithFallback(cik: string, tags: string[]): Promise<XbrlFact[]> {
+  for (const tag of tags) {
+    const facts = await fetchXbrlConcept(cik, tag);
+    if (facts && facts.length) {
+      return facts;
+    }
+  }
+  throw new Error(`No usable XBRL facts for CIK ${cik} among tags: ${tags.join(", ")}`);
+}
+
+// Reduces a raw XBRL fact array to one value per full fiscal year (10-K filings with a
+// ~365-day duration), keyed by the calendar year of the period end date, keeping the most
+// recently filed figure when a period was restated.
+function annualFactsByCalendarYear(facts: XbrlFact[]): Map<number, number> {
+  const byPeriodEnd = new Map<string, XbrlFact>();
+  for (const fact of facts) {
+    if (fact.form !== "10-K" || !fact.start) {
+      continue;
+    }
+    const durationDays = (new Date(fact.end).getTime() - new Date(fact.start).getTime()) / 86_400_000;
+    if (durationDays < 350 || durationDays > 380) {
+      continue;
+    }
+    const existing = byPeriodEnd.get(fact.end);
+    if (!existing || fact.filed > existing.filed) {
+      byPeriodEnd.set(fact.end, fact);
+    }
+  }
+  const byYear = new Map<number, number>();
+  for (const fact of byPeriodEnd.values()) {
+    byYear.set(new Date(fact.end).getUTCFullYear(), fact.val);
+  }
+  return byYear;
+}
+
+const revenueXbrlTags = ["RevenueFromContractWithCustomerExcludingAssessedTax", "Revenues"];
+const capexXbrlTags = ["PaymentsToAcquirePropertyPlantAndEquipment", "PaymentsToAcquireProductiveAssets"];
+
+// Microsoft, Amazon, Alphabet, and Meta don't share a fiscal year end (Microsoft's is June 30;
+// the other three are calendar years), so combining "by fiscal year" would misalign them. This
+// buckets each company's annual figure by the calendar year its fiscal year ends in instead --
+// an approximation that's disclosed in the metric's caveats.
+async function fetchHyperscalerCapexDivergence(): Promise<HistoryPoint[]> {
+  const revenueByCompany = await Promise.all(
+    hyperscalerCiks.map((cik) => fetchXbrlConceptWithFallback(cik, revenueXbrlTags).then(annualFactsByCalendarYear)),
+  );
+  const capexByCompany = await Promise.all(
+    hyperscalerCiks.map((cik) => fetchXbrlConceptWithFallback(cik, capexXbrlTags).then(annualFactsByCalendarYear)),
+  );
+
+  const years = new Set<number>();
+  for (const byYear of [...revenueByCompany, ...capexByCompany]) {
+    for (const year of byYear.keys()) {
+      years.add(year);
+    }
+  }
+
+  const combinedRevenue = new Map<number, number>();
+  const combinedCapex = new Map<number, number>();
+  for (const year of years) {
+    if (revenueByCompany.every((byYear) => byYear.has(year))) {
+      combinedRevenue.set(year, revenueByCompany.reduce((sum, byYear) => sum + (byYear.get(year) ?? 0), 0));
+    }
+    if (capexByCompany.every((byYear) => byYear.has(year))) {
+      combinedCapex.set(year, capexByCompany.reduce((sum, byYear) => sum + (byYear.get(year) ?? 0), 0));
+    }
+  }
+
+  const points: HistoryPoint[] = [];
+  for (const year of [...years].sort((a, b) => a - b)) {
+    const revenue = combinedRevenue.get(year);
+    const revenuePrior = combinedRevenue.get(year - 1);
+    const capex = combinedCapex.get(year);
+    const capexPrior = combinedCapex.get(year - 1);
+    if (!revenue || !revenuePrior || !capex || !capexPrior) {
+      continue;
+    }
+    const revenueGrowthPct = ((revenue - revenuePrior) / revenuePrior) * 100;
+    const capexGrowthPct = ((capex - capexPrior) / capexPrior) * 100;
+    points.push({ date: `${year}-12-31`, value: Number((capexGrowthPct - revenueGrowthPct).toFixed(1)) });
+  }
+  if (!points.length) {
+    throw new Error("Could not compute any complete-year hyperscaler capex/revenue divergence points.");
+  }
+  return points;
+}
+
 async function upsertValues(
   supabase: SupabaseClient<Database>,
   metricId: string,
@@ -381,6 +548,34 @@ async function main() {
     sourceResults.push({ source: "coingecko-global", ok: true, count: points.length });
   } catch (error) {
     sourceResults.push({ source: "coingecko-global", ok: false, error: error instanceof Error ? error.message : String(error) });
+  }
+
+  try {
+    const points = await fetchHyperscalerCapexDivergence();
+    await upsertValues(supabase, "hyperscaler-capex-divergence", points, {
+      source: "SEC EDGAR XBRL",
+      ciks: hyperscalerCiks,
+      derived: true,
+    });
+    sourceResults.push({ source: "sec-edgar-hyperscaler-capex-divergence", ok: true, count: points.length });
+  } catch (error) {
+    sourceResults.push({
+      source: "sec-edgar-hyperscaler-capex-divergence",
+      ok: false,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+
+  try {
+    const points = await fetchOpenWeightGap();
+    await upsertValues(supabase, "open-weight-gap", points, { source: "Artificial Analysis API" });
+    sourceResults.push({ source: "artificial-analysis-open-weight-gap", ok: true, count: points.length });
+  } catch (error) {
+    sourceResults.push({
+      source: "artificial-analysis-open-weight-gap",
+      ok: false,
+      error: error instanceof Error ? error.message : String(error),
+    });
   }
 
   await recomputeCompositeAndAlerts(supabase);

@@ -591,65 +591,24 @@ const baseMetrics: MetricDefinition[] = [
     ],
   },
   {
-    id: "open-weight-convergence",
-    slug: "open-weight-model-convergence",
-    name: "Open-Weight Model Convergence Gap",
+    id: "open-weight-gap",
+    slug: "open-vs-closed-model-gap",
+    name: "Open vs. Closed Model Intelligence Gap",
     category: "AI Buildout",
-    unit: "mo",
-    descriptionShort: "How many months the best open-weight model lags the top closed frontier model.",
+    unit: "pts",
+    descriptionShort: "Artificial Analysis Intelligence Index gap between the top closed and top open-weight model.",
     descriptionLong:
-      "Tracks the estimated capability lag, in months, between the best available open-weight language model and the best closed frontier model, based on aggregate benchmark trackers such as Epoch AI's ECI gap and the Artificial Analysis Intelligence Index. A shrinking gap means open-weight releases are closing in on frontier labs' best closed models faster than those labs can extend their lead.",
+      "Tracks the gap, in Artificial Analysis Intelligence Index points, between the best-scoring closed model and the best-scoring open-weight model. A shrinking gap means open-weight releases are closing in on frontier labs' best closed models faster than those labs can extend their lead.",
     whyItMatters:
       "The premium valuations placed on frontier AI labs and the hyperscalers bankrolling them lean on the assumption that closed-model capability stays meaningfully ahead of free alternatives. A fast-closing gap chips away at that moat narrative even though it says nothing about near-term revenue.",
     caveats:
-      "This is a watch item, not part of the composite score. There is no single authoritative feed for this gap -- it is reconstructed from public benchmark leaderboard commentary (Epoch AI, Artificial Analysis, LMArena) and is necessarily approximate. Benchmark composites also don't capture reliability, tooling, or enterprise-support gaps that matter in practice.",
-    sourceName: "Epoch AI / Artificial Analysis (reconstructed)",
-    sourceUrl: "https://epoch.ai/data-insights/open-closed-eci-gap",
-    updateFrequency: "Quarterly (manual)",
+      "This is a watch item, not part of the composite score. Live updates require a free Artificial Analysis API key (ARTIFICIALANALYSIS_API_KEY) configured for the ingestion job -- without it, this metric stops receiving new data points rather than falling back to invented numbers. The single seed value below is one real, dated reading (GLM 5.2 at 51 vs. Claude Fable 5 at ~56 on Artificial Analysis's Intelligence Index v4.1, mid-2026); it is not a trend line until the live feed accumulates more points.",
+    sourceName: "Artificial Analysis Intelligence Index",
+    sourceUrl: "https://artificialanalysis.ai/",
+    updateFrequency: "Daily (automated, requires API key)",
     orientationHigherIsFrothier: false,
     includedInComposite: false,
-    history: [
-      { date: "2023-06-01", value: 14 },
-      { date: "2023-12-01", value: 12 },
-      { date: "2024-06-01", value: 10 },
-      { date: "2024-09-01", value: 8 },
-      { date: "2025-01-01", value: 7 },
-      { date: "2025-06-01", value: 6 },
-      { date: "2025-09-01", value: 5 },
-      { date: "2026-01-01", value: 4 },
-      { date: "2026-07-01", value: 4 },
-    ],
-  },
-  {
-    id: "ai-infra-credit-spread",
-    slug: "ai-infrastructure-credit-spread",
-    name: "AI Infrastructure Credit Spread",
-    category: "AI Buildout",
-    unit: "bp",
-    descriptionShort: "5-year CDS spread on the hyperscalers financing the AI buildout.",
-    descriptionLong:
-      "Tracks 5-year credit default swap spreads on the large-cap hyperscalers (Microsoft, Amazon, Google, Oracle) issuing record amounts of debt and off-balance-sheet financing to fund AI data centers. Widening spreads show credit markets pricing in more risk from that debt load; tight spreads show the market treating hyperscaler AI debt as safe as it always has.",
-    whyItMatters:
-      "Data-center buildouts are increasingly financed with bonds, private credit, and SPVs rather than cash flow, including tens of billions of dollars in single issuances from Oracle and Meta in 2025-2026. A market that keeps spreads tight despite that leverage is pricing very little risk into the AI capex boom; widening spreads are the credit market's way of saying the buildout is no longer a free lunch.",
-    caveats:
-      "CDS spreads move on many things besides AI capex (rates, general credit conditions, issuer-specific news), so this is a noisy proxy, not a pure AI-debt signal. Pre-2023 history is approximated from typical large-cap investment-grade tech spreads since AI-specific data-center debt issuance is a recent phenomenon.",
-    sourceName: "Bloomberg / CMA CDS pricing (reconstructed)",
-    sourceUrl: "https://www.forbes.com/sites/jasonkirsch/2026/06/02/the-ai-capex-to-revenue-gap-is-widening---and-markets-are-starting-to-notice/",
-    updateFrequency: "Daily (manual)",
-    orientationHigherIsFrothier: false,
-    includedInComposite: true,
-    history: [
-      { date: "2023-01-01", value: 18 },
-      { date: "2023-07-01", value: 17 },
-      { date: "2024-01-01", value: 16 },
-      { date: "2024-07-01", value: 18 },
-      { date: "2025-01-01", value: 30 },
-      { date: "2025-04-01", value: 38 },
-      { date: "2025-07-01", value: 45 },
-      { date: "2025-10-01", value: 55 },
-      { date: "2026-01-01", value: 65 },
-      { date: "2026-06-01", value: 75 },
-    ],
+    history: [{ date: "2026-07-01", value: 5 }],
   },
   {
     id: "hyperscaler-capex-divergence",
@@ -659,27 +618,17 @@ const baseMetrics: MetricDefinition[] = [
     unit: "pp",
     descriptionShort: "How much faster combined hyperscaler capex is growing than their revenue.",
     descriptionLong:
-      "Compares the year-over-year growth rate of combined capital expenditures at the largest hyperscalers (Microsoft, Amazon, Google, Meta) with the year-over-year growth rate of their combined revenue. A rising gap means AI infrastructure spending is compounding faster than the sales it is meant to support.",
+      "Compares the year-over-year growth rate of combined capital expenditures at Microsoft, Amazon, Alphabet, and Meta with the year-over-year growth rate of their combined revenue, computed directly from each company's SEC XBRL filings. A rising gap means AI infrastructure spending is compounding faster than the sales it is meant to support.",
     whyItMatters:
-      "Combined capex has grown roughly 60-80% a year for three straight years while combined revenue has grown in the mid-teens, opening an annual gap estimated near $600B between AI infrastructure spend and AI-linked revenue in 2026. That gap is the clearest numeric expression of the 'spending now, monetizing later' bet underpinning the AI trade -- the wider it gets, the more the trade depends on future demand showing up on schedule.",
+      "Capex at these four companies has been growing far faster than revenue through the AI buildout. That gap is the clearest numeric expression of the 'spending now, monetizing later' bet underpinning the AI trade -- the wider it gets, the more the trade depends on future demand showing up on schedule.",
     caveats:
-      "Capex and revenue growth rates are reconstructed from company guidance and analyst aggregates reported across 2024-2026 (Epoch AI, CreditSights, sell-side estimates), not a single clean data series, and the four companies are blended rather than tracked individually. Revenue growth here is total company revenue, not AI-specific revenue, since AI-only revenue is not separately disclosed.",
-    sourceName: "Company filings / analyst aggregates (reconstructed)",
-    sourceUrl: "https://introl.com/blog/hyperscaler-capex-600b-2026-ai-infrastructure-debt-january-2026",
-    updateFrequency: "Quarterly (manual)",
+      "Live updates are computed from each company's PaymentsToAcquirePropertyPlantAndEquipment and revenue XBRL facts via SEC EDGAR's free companyconcept API (no key required), matched by calendar year of fiscal-year-end and only combined when all four companies report both the current and prior year. The single seed value below is one real, precisely computed point (FY2024 to FY2025 combined revenue, from each company's own 10-K/earnings release, +14.7%, versus Epoch AI's reported 2024-to-2025 combined hyperscaler capex growth of +81.4%; note that Epoch AI's capex figure includes Oracle alongside these four, a scope mismatch this one bootstrap point inherits -- the live SEC-only feed replaces it with an apples-to-apples figure once ingestion runs). The four companies have different fiscal year ends (Microsoft's is June 30), so calendar-year bucketing blends slightly offset fiscal periods. Revenue growth is total company revenue, not AI-specific revenue, since AI-only revenue is not separately disclosed.",
+    sourceName: "SEC EDGAR XBRL (company filings)",
+    sourceUrl: "https://data.sec.gov/api/xbrl/companyconcept/CIK0000789019/us-gaap/Revenues.json",
+    updateFrequency: "Annual (automated, keyless)",
     orientationHigherIsFrothier: true,
     includedInComposite: true,
-    history: [
-      { date: "2019-01-01", value: 4 },
-      { date: "2021-01-01", value: 9 },
-      { date: "2023-01-01", value: 14 },
-      { date: "2024-01-01", value: 33 },
-      { date: "2024-07-01", value: 38 },
-      { date: "2025-01-01", value: 45 },
-      { date: "2025-07-01", value: 52 },
-      { date: "2026-01-01", value: 58 },
-      { date: "2026-07-01", value: 60 },
-    ],
+    history: [{ date: "2025-12-31", value: 66.8 }],
   },
 ];
 
@@ -861,14 +810,11 @@ export function formatValue(value: number, metric: MetricDefinition) {
   if (metric.unit === "$T") {
     return `$${rounded}T`;
   }
-  if (metric.unit === "bp") {
-    return `${Math.round(value)}bp`;
-  }
   if (metric.unit === "pp") {
     return `${rounded}pp`;
   }
-  if (metric.unit === "mo") {
-    return `${rounded} mo`;
+  if (metric.unit === "pts") {
+    return `${rounded}pts`;
   }
   return `${rounded}`;
 }
