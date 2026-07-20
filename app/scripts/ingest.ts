@@ -276,16 +276,16 @@ async function fetchXbrlConcept(cik: string, tag: string): Promise<XbrlFact[] | 
 }
 
 // Large filers have used different XBRL tags for the same line item over the years (e.g. ASC 606
-// adoption changed the standard revenue tag), so each concept is tried in priority order and the
-// first tag that actually has data wins.
+// adoption changed the standard revenue tag partway through a company's history), so every tag is
+// fetched and merged rather than stopping at the first one with any data -- a company that only
+// has 3 years under the modern tag would otherwise silently lose its older history.
 async function fetchXbrlConceptWithFallback(cik: string, tags: string[]): Promise<XbrlFact[]> {
-  for (const tag of tags) {
-    const facts = await fetchXbrlConcept(cik, tag);
-    if (facts && facts.length) {
-      return facts;
-    }
+  const results = await Promise.all(tags.map((tag) => fetchXbrlConcept(cik, tag)));
+  const merged = results.flatMap((facts) => facts ?? []);
+  if (!merged.length) {
+    throw new Error(`No usable XBRL facts for CIK ${cik} among tags: ${tags.join(", ")}`);
   }
-  throw new Error(`No usable XBRL facts for CIK ${cik} among tags: ${tags.join(", ")}`);
+  return merged;
 }
 
 // Reduces a raw XBRL fact array to one value per full fiscal year (10-K filings with a
@@ -360,7 +360,13 @@ async function fetchHyperscalerCapexDivergence(): Promise<HistoryPoint[]> {
     points.push({ date: `${year}-12-31`, value: Number((capexGrowthPct - revenueGrowthPct).toFixed(1)) });
   }
   if (!points.length) {
-    throw new Error("Could not compute any complete-year hyperscaler capex/revenue divergence points.");
+    const summarize = (byCompany: Map<number, number>[]) =>
+      hyperscalerCiks.map((cik, i) => ({ cik, years: [...byCompany[i].keys()].sort() }));
+    throw new Error(
+      "Could not compute any complete-year hyperscaler capex/revenue divergence points. " +
+        `revenue years found: ${JSON.stringify(summarize(revenueByCompany))}; ` +
+        `capex years found: ${JSON.stringify(summarize(capexByCompany))}`,
+    );
   }
   return points;
 }
