@@ -211,7 +211,8 @@ async function fetchOpenWeightGap(): Promise<HistoryPoint[]> {
     headers: { "x-api-key": apiKey },
   });
   if (!response.ok) {
-    throw new Error(`Artificial Analysis API failed with ${response.status}`);
+    const body = await response.text().catch(() => "<unreadable body>");
+    throw new Error(`Artificial Analysis API failed with ${response.status}: ${body.slice(0, 500)}`);
   }
   const payload = (await response.json()) as {
     data?: Array<{
